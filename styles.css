@@ -124,33 +124,71 @@
   list-style: none;
   padding: 0;
   margin: 20px 0;
-  max-height: 300px;
+  height: 250px;
   overflow-y: auto;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  width: 60%;
+  border: 1px solid #323232;
+  background-color: rgb(29, 29, 29);
+  color: white;
+  width: 70%;
 }
 
 #answers-list li {
-  padding: 0.75rem;
-  border-bottom: 1px solid #eee;
+  padding: 1rem;
+  border: 0.5px solid #ffffff;
   cursor: pointer;
-  font-family: 'FounderGrotesk_Regular', sans-serif;
+  font-family: 'FounderGrotesk_Regular', sans-serif;;
 }
 
-#answers-list li:last-child {
-  border-bottom: none;
+#answers-list li strong {
+  background-color: rgb(255, 74, 74);
+
+}
+
+#answers-list li .orangeStrong{
+  background-color: rgb(255, 119, 28);
+}
+
+#answers-list li .blueStrong{
+  background-color: rgb(74, 74, 255);
+}
+
+#answers-list p{
+  padding: 20px;
+  padding-bottom: 0;
+  padding-left: 5px;
+  margin-top: 10px;
+  border-left: 2px dashed rgb(148, 148, 148);
+  color: magenta;
+}
+
+#answers-list .row-number{
+  background-color: rgb(0, 255, 0);
+  color: black;
+  padding: 5px;
+  border-radius: 6px;
 }
 
 #answers-list li:hover {
-  background-color: #f0f0f0;
+  background-color: black;
+}
+
+#selected-count {
+  position: fixed;
+  bottom: 20px;
+  right: 110px;
+  padding: 10px;
+  background-color: rgb(0, 255, 2.0);
+  color: black;
+  font-size: 0.9rem;
+  border: none;
+  font-family: 'FounderGrotesk_Regular', sans-serif;
 }
 
 @media print {
   html, body {
     height: auto !important;
   }
+
   .container {
     display: block !important;
     width: auto !important;
@@ -160,8 +198,8 @@
   }
 
   @page {
-    size: 16.5in 5in; 
-    margin: 0; 
+    size: 16.5in 5in;
+    margin: 0;
     page-orientation: rotate-left;
   }
 
@@ -178,22 +216,28 @@
   .select-question,
   #print-btn,
   #word-count,
-  #answers-list {
+  #answers-list,
+  #selected-count {
     display: none !important;
   }
 
-  /* Page size and inner margins for print layout */
+  /* Hide the “live” print-surface nodes in the normal UI */
   .print-surface {
+    display: none !important;
+  }
+
+  /* Reveal only the cloned .print-surface elements inside #print-container */
+  #print-container .print-surface {
+    display: flex !important;
     width: 16.5in !important;
     height: 5in !important;
     padding: 0.2in !important;
-    display: flex !important;
     flex-direction: row !important;
     box-sizing: border-box !important;
   }
 
-  /* Cards take 7.2 inches from the left */
-  .cards {
+  /* Cards inside #print-container should follow the same print layout */
+  #print-container .cards {
     width: 7.2in !important;
     margin-right: 0.2in !important;
     height: 100% !important;
@@ -202,18 +246,18 @@
     gap: 0 !important;
   }
 
-  .overlay-text {
-    border: none !important; /* Remove border for print */
-    width: 75% !important; /* Adjust width for print */
-    font-size: 2.2rem !important; 
+  #print-container .overlay-text {
+    border: none !important;
+    width: 75% !important;
+    font-size: 2.2rem !important;
   }
 
-  .answer {
+  #print-container .answer {
     width: 9.1in !important;
     height: 100% !important;
   }
 
-  .answer-box {
+  #print-container .answer-box {
     width: 100% !important;
     height: 100% !important;
     padding: 0 !important;
