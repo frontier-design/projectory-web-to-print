@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Web-to-Print Prototype</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+    <div class="container">
+        <button id="print-btn">Export</button>
+        <div class="print-surface">
+            <div class="cards">
+                <div id="orange-card" class="card">
+                    <div id="orange-overlay" class="overlay-text"></div>
+                </div>
+                <div id="blue-card" class="card">
+                    <div id="blue-overlay" class="overlay-text"></div>
+                </div>
+            </div>
+            <div class="answer">
+                <div id="answer" class="answer-box" contenteditable="false">
+                </div>
+            </div>
+        </div>
+
+        <ul id="answers-list"></ul>
+    </div>
+
+    <script src="fetchAnswers.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,225 @@
+@font-face {
+  font-family: 'FounderGrotesk_Regular';
+  src: url('./assets/fonts/FoundersGrotesk-Regular.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'FounderGrotesk_Regular_Italic';
+  src: url('./assets/fonts/FoundersGrotesk-RegularItalic.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'FounderGrotesk_Medium';
+  src: url('./assets/fonts/FoundersGrotesk-Medium.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'PermanentMarker';
+  src: url('./assets/fonts/PermanentMarker-Regular.ttf') format('truetype');
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'FounderGrotesk_Medium';
+}
+
+.container {
+  display: grid;
+  width: 100%;
+  height: 100vh;
+  gap: 20px;
+  padding: 20px;
+}
+
+.card {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 20px;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-sizing: border-box;
+}
+
+.print-surface {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  width: 100%;
+  height: 500px;
+  padding: 25px;
+  border: 1px solid red;
+}
+
+.cards {
+  width: 650px;
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  justify-content: space-between;
+  border: 1px dashed magenta;
+}
+
+
+.answer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.answer-box {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  font-size: 2rem;
+  font-family: 'PermanentMarker', sans-serif;
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  border: 1px dashed blue;
+}
+
+#orange-card {
+  background-image: url('./assets/orange.svg');
+}
+
+#blue-card {
+  background-image: url('./assets/blue.svg');
+}
+
+.overlay-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  width: 95%;
+  font-size: 2.0rem;
+  color: #fff;
+  border: 1px dashed rgb(0, 255, 0);
+}
+
+#print-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  background-color: rgb(217, 217, 217);
+  color: black;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+  font-family: 'FounderGrotesk_Regular', sans-serif;
+}
+
+#answers-list {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  width: 60%;
+}
+
+#answers-list li {
+  padding: 0.75rem;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  font-family: 'FounderGrotesk_Regular', sans-serif;
+}
+
+#answers-list li:last-child {
+  border-bottom: none;
+}
+
+#answers-list li:hover {
+  background-color: #f0f0f0;
+}
+
+@media print {
+  html, body {
+    height: auto !important;
+  }
+  .container {
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  @page {
+    size: 16.5in 5in; 
+    margin: 0; 
+    page-orientation: rotate-left;
+  }
+
+  /* Remove all borders for printing */
+  * {
+    border: none !important;
+  }
+
+  body {
+    margin: 0;
+  }
+
+  /* Hide interface elements not needed in print */
+  .select-question,
+  #print-btn,
+  #word-count,
+  #answers-list {
+    display: none !important;
+  }
+
+  /* Page size and inner margins for print layout */
+  .print-surface {
+    width: 16.5in !important;
+    height: 5in !important;
+    padding: 0.2in !important;
+    display: flex !important;
+    flex-direction: row !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Cards take 7.2 inches from the left */
+  .cards {
+    width: 7.2in !important;
+    margin-right: 0.2in !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 0 !important;
+  }
+
+  .overlay-text {
+    border: none !important; /* Remove border for print */
+    width: 75% !important; /* Adjust width for print */
+    font-size: 2.2rem !important; 
+  }
+
+  .answer {
+    width: 9.1in !important;
+    height: 100% !important;
+  }
+
+  .answer-box {
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
+    border: none !important;
+    background: none !important;
+    font-size: 4.5rem !important;
+    line-height: 4.6rem !important;
+  }
+}
