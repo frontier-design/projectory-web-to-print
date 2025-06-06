@@ -1,18 +1,29 @@
-// Reminder: Ensure your HTML includes a hidden container for printing:
-// <div id="print-container" style="display:none;"></div>
+// script.js
 
-const WEB_APP_URL =
-  "https://script.google.com/macros/s/AKfycbyZUYi2C60jwxA1sb2T7lUbvXe1WQDiyg_fHFNfse4CGDSGcdFYBZBb6q7T36ERR-dN/exec?mode=answers";
+// Replace this with your actual deployed Web App URL (without any query string)
+const WEB_APP_BASE_URL =
+  "https://script.google.com/macros/s/AKfycbyZUYi2C60jwxA1sb2T7lUbvXe1WQDiyg_fHFNfse4CGDSGcdFYBZBb6q7T36ERR-dN/exec";
 
+/**
+ * Populate the #answers-list <ul> with one <li> per answer object.
+ * Each answer object is expected to have: { orangeCard, blueCard, whatIsA, thatCould, freeText }.
+ */
 function populateAnswersList(answerArray) {
   const list = document.getElementById("answers-list");
   list.innerHTML = "";
 
-  answerArray.forEach((item, index) => {
-    const rowNumber = index + 1; // Compute row number (1-based)
-    const li = document.createElement("li");
+  // If answerArray is not actually an Array, bail with an error message
+  if (!Array.isArray(answerArray)) {
+    list.innerHTML = `<li style="color:red">Error: Expected an array of answers but got ${typeof answerArray}.</li>`;
+    console.error("populateAnswersList expected array but got:", answerArray);
+    return;
+  }
 
-    // Insert a checkbox, the row number, and the rest of the content
+  answerArray.forEach((item, index) => {
+    const rowNumber = index + 1; // 1-based
+
+    // Create <li> and its inner structure
+    const li = document.createElement("li");
     li.innerHTML = `
       <label class="list-item-label" style="display: flex; align-items: center; gap: 8px;">
         <input type="checkbox" class="select-checkbox" />
@@ -25,10 +36,10 @@ function populateAnswersList(answerArray) {
       </label>
     `;
 
-    // Reference the checkbox inside this list item
+    // Reference the checkbox inside this <li>
     const checkbox = li.querySelector(".select-checkbox");
 
-    // When checkbox changes, update selection and counter
+    // When the checkbox changes, update the 'selected' class and the counter
     checkbox.addEventListener("change", (e) => {
       if (checkbox.checked) {
         li.classList.add("selected");
@@ -39,13 +50,13 @@ function populateAnswersList(answerArray) {
       updateSelectedCount();
     });
 
-    // Handle click on the <li>
+    // Click on the <li> itself:
     li.addEventListener("click", (e) => {
-      // 1) If the click is on the checkbox itself, let the checkbox handler run
+      // 1) If click was on the checkbox itself, let the checkbox handler run
       if (e.target.closest(".select-checkbox")) {
         return;
       }
-      // 2) If the click is inside the item-content, only update overlays
+      // 2) If click was inside the .item-content, only update overlays
       if (e.target.closest(".item-content")) {
         document.getElementById("orange-overlay").textContent = item.whatIsA;
         document.getElementById("blue-overlay").textContent = item.thatCould;
@@ -53,17 +64,21 @@ function populateAnswersList(answerArray) {
         answerBox.innerText = item.freeText;
         return;
       }
-      // 3) Otherwise (click on row-number or whitespace), toggle selection
+      // 3) Otherwise (click on row number or whitespace), toggle selection
       checkbox.checked = !checkbox.checked;
       li.classList.toggle("selected", checkbox.checked);
       updateSelectedCount();
     });
 
+    // Append <li> to the list
     list.appendChild(li);
   });
 }
 
-// Update the displayed count of selected items
+/**
+ * Update the displayed count of how many items are currently selected.
+ * Expects a <span id="selected-count"> in the DOM.
+ */
 function updateSelectedCount() {
   const selectedCountSpan = document.getElementById("selected-count");
   if (!selectedCountSpan) return;
@@ -71,12 +86,13 @@ function updateSelectedCount() {
   selectedCountSpan.textContent = `Selected: ${count}`;
 }
 
-// Build a print-only container with one print-surface per selected item
+/**
+ * Build a hidden print-container that holds one .print-surface per selected <li>.
+ * These clones will be the only visible .print-surface elements when printing.
+ */
 function buildPrintContainer() {
-  // Remove any existing print-container content
   let printContainer = document.getElementById("print-container");
   if (!printContainer) {
-    // If the container isn't in the HTML, create and append it
     printContainer = document.createElement("div");
     printContainer.id = "print-container";
     printContainer.style.display = "none";
@@ -84,9 +100,9 @@ function buildPrintContainer() {
   }
   printContainer.innerHTML = "";
 
-  // For each selected <li>, clone its data into a new print-surface
   const selectedItems = document.querySelectorAll("#answers-list li.selected");
   selectedItems.forEach((li) => {
+    // Extract values from the clicked list item
     const whatIsA = li
       .querySelector(".item-content .orangeStrong")
       .nextSibling.textContent.trim();
@@ -95,7 +111,7 @@ function buildPrintContainer() {
       .nextSibling.textContent.trim();
     const freeText = li.querySelector(".item-content p").textContent.trim();
 
-    // Create a new print-surface wrapper
+    // Create a new .print-surface wrapper
     const ps = document.createElement("div");
     ps.className = "print-surface";
 
@@ -141,9 +157,16 @@ function buildPrintContainer() {
   });
 }
 
+/**
+ * Fetch all answers live from the Google Apps Script, telling it `?mode=answers`.
+ * On success, pass the JSON array to populateAnswersList.
+ * On failure, show an error in the #answers-list <ul>.
+ */
 async function fetchAllAnswers() {
   try {
-    const response = await fetch(WEB_APP_URL);
+    // Always append ?mode=answers so the script returns an array, never an object
+    const fetchURL = `${WEB_APP_BASE_URL}?mode=answers`;
+    const response = await fetch(fetchURL);
     if (!response.ok) {
       throw new Error(`Lookup request failed with status ${response.status}`);
     }
@@ -156,21 +179,27 @@ async function fetchAllAnswers() {
   }
 }
 
+/**
+ * When the DOM is ready:
+ *  • Call fetchAllAnswers() to load current data.
+ *  • Insert a <span id="selected-count"> next to the “Export” button.
+ *  • Wire up the “Export” button to buildPrintContainer and print.
+ */
 document.addEventListener("DOMContentLoaded", () => {
   fetchAllAnswers();
 
+  // Add Selected: 0 <span> after the print button
   const printBtn = document.getElementById("print-btn");
   const counterSpan = document.createElement("span");
   counterSpan.id = "selected-count";
   counterSpan.textContent = "Selected: 0";
   printBtn.insertAdjacentElement("afterend", counterSpan);
 
+  // Click handler for the Export button
   document.getElementById("print-btn").addEventListener("click", () => {
     buildPrintContainer();
-    // Temporarily show the print container and hide the rest via CSS
     document.getElementById("print-container").style.display = "block";
     window.print();
-    // After printing, hide it again
     document.getElementById("print-container").style.display = "none";
   });
 });

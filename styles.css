@@ -121,10 +121,13 @@
 }
 
 #answers-list {
+  position: fixed;
+  left: 10px;
   list-style: none;
   padding: 0;
   margin: 20px 0;
-  height: 250px;
+  height: 90vh;
+  
   overflow-y: auto;
   border: 1px solid #323232;
   background-color: rgb(29, 29, 29);
