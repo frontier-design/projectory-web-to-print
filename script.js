@@ -2,7 +2,7 @@
 
 // Replace this with your actual deployed Web App URL (without any query string)
 const WEB_APP_BASE_URL =
-  "https://script.google.com/macros/s/AKfycbyZUYi2C60jwxA1sb2T7lUbvXe1WQDiyg_fHFNfse4CGDSGcdFYBZBb6q7T36ERR-dN/exec";
+  "https://script.google.com/macros/s/AKfycbw3jszT16xnqHvT1OwYswb1hhzDcyzsc53vkCq-JdwCEmQG5VKY5W65c-mkm65LVIFG1A/exec";
 
 /**
  * Populate the #answers-list <ul> with one <li> per answer object.
@@ -20,20 +20,21 @@ function populateAnswersList(answerArray) {
   }
 
   answerArray.forEach((item, index) => {
-    const rowNumber = index + 1; // 1-based
-
+    const rowNumber = index + 1;
     // Create <li> and its inner structure
     const li = document.createElement("li");
     li.innerHTML = `
-      <label class="list-item-label" style="display: flex; align-items: center; gap: 8px;">
+      <div class="list-item-label">
         <input type="checkbox" class="select-checkbox" />
-        <span class="row-number">${rowNumber}.</span>
         <div class="item-content">
-          <strong class="orangeStrong">WhatIsA:</strong> ${item.whatIsA} <br/>
-          <strong class="blueStrong">ThatCould:</strong> ${item.thatCould} <br/>
+          <span class="row-number">${rowNumber}</span>
+          <strong class="orangeStrong">What Is A</strong>
+          <span class="whatIsA value-text">${item.whatIsA}</span><br/>
+          <strong class="blueStrong">That Could</strong>
+          <span class="thatCould value-text">${item.thatCould}</span><br/>
           <p>${item.freeText}</p>
         </div>
-      </label>
+      </div>
     `;
 
     // Reference the checkbox inside this <li>
@@ -50,21 +51,18 @@ function populateAnswersList(answerArray) {
       updateSelectedCount();
     });
 
-    // Click on the <li> itself:
+    // Click on the <li> itself toggles selection and updates overlays
     li.addEventListener("click", (e) => {
-      // 1) If click was on the checkbox itself, let the checkbox handler run
-      if (e.target.closest(".select-checkbox")) {
-        return;
-      }
-      // 2) If click was inside the .item-content, only update overlays
-      if (e.target.closest(".item-content")) {
-        document.getElementById("orange-overlay").textContent = item.whatIsA;
-        document.getElementById("blue-overlay").textContent = item.thatCould;
-        const answerBox = document.getElementById("answer");
-        answerBox.innerText = item.freeText;
-        return;
-      }
-      // 3) Otherwise (click on row number or whitespace), toggle selection
+      // Ignore clicks directly on the checkbox (handled separately)
+      if (e.target.closest(".select-checkbox")) return;
+
+      // Update overlays with the current item's text
+      document.getElementById("orange-overlay").textContent = item.whatIsA;
+      document.getElementById("blue-overlay").textContent = item.thatCould;
+      const answerBox = document.getElementById("answer");
+      answerBox.innerText = item.freeText;
+
+      // Toggle the checkbox and selected class
       checkbox.checked = !checkbox.checked;
       li.classList.toggle("selected", checkbox.checked);
       updateSelectedCount();
@@ -104,11 +102,11 @@ function buildPrintContainer() {
   selectedItems.forEach((li) => {
     // Extract values from the clicked list item
     const whatIsA = li
-      .querySelector(".item-content .orangeStrong")
-      .nextSibling.textContent.trim();
+      .querySelector(".item-content .whatIsA")
+      .textContent.trim();
     const thatCould = li
-      .querySelector(".item-content .blueStrong")
-      .nextSibling.textContent.trim();
+      .querySelector(".item-content .thatCould")
+      .textContent.trim();
     const freeText = li.querySelector(".item-content p").textContent.trim();
 
     // Create a new .print-surface wrapper
@@ -186,17 +184,34 @@ async function fetchAllAnswers() {
  *  • Wire up the “Export” button to buildPrintContainer and print.
  */
 document.addEventListener("DOMContentLoaded", () => {
+  // Wrap the answers-list in a parent container
+  const answersList = document.getElementById("answers-list");
+  const answersWrapper = document.createElement("div");
+  answersWrapper.id = "answers-wrapper";
+  answersList.parentNode.insertBefore(answersWrapper, answersList);
+  answersWrapper.appendChild(answersList);
+
+  // Dynamically add overlay containers to both cards
+  ["orange", "blue"].forEach((color) => {
+    const card = document.getElementById(`${color}-card`);
+    const overlay = document.createElement("div");
+    overlay.id = `${color}-overlay`;
+    overlay.className = "overlay-text";
+    card.appendChild(overlay);
+  });
+
   fetchAllAnswers();
 
-  // Add Selected: 0 <span> after the print button
+  // Move Export button and selected counter inside answers-wrapper
   const printBtn = document.getElementById("print-btn");
   const counterSpan = document.createElement("span");
   counterSpan.id = "selected-count";
   counterSpan.textContent = "Selected: 0";
-  printBtn.insertAdjacentElement("afterend", counterSpan);
+  answersWrapper.appendChild(printBtn);
+  answersWrapper.appendChild(counterSpan);
 
   // Click handler for the Export button
-  document.getElementById("print-btn").addEventListener("click", () => {
+  printBtn.addEventListener("click", () => {
     buildPrintContainer();
     document.getElementById("print-container").style.display = "block";
     window.print();

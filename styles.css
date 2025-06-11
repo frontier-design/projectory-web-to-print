@@ -22,7 +22,7 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'FounderGrotesk_Medium';
+  font-family: 'FounderGrotesk_Regular';
 }
 
 .container {
@@ -64,7 +64,6 @@
   justify-content: space-between;
   border: 1px dashed magenta;
 }
-
 
 .answer {
   flex: 1;
@@ -112,67 +111,142 @@
   bottom: 20px;
   right: 20px;
   padding: 10px 20px;
-  background-color: rgb(217, 217, 217);
-  color: black;
-  font-size: 0.9rem;
+  font-size: 1rem;
   border: none;
   cursor: pointer;
   font-family: 'FounderGrotesk_Regular', sans-serif;
+  background-color: orangered;
+  color: white;
+}
+
+#answers-wrapper{
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100vh;
+  padding: 50px 450px ;
+  overflow-y: auto;
+  background-color: white;
 }
 
 #answers-list {
-  position: fixed;
-  left: 10px;
   list-style: none;
   padding: 0;
-  margin: 20px 0;
-  height: 90vh;
-  
-  overflow-y: auto;
-  border: 1px solid #323232;
-  background-color: rgb(29, 29, 29);
-  color: white;
-  width: 70%;
+  position: relative;
 }
+
+.select-checkbox {
+  /* Hide native appearance */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+
+  /* Use FounderGrotesk for the checkbox glyph */
+  font-family: 'FounderGrotesk_Regular', sans-serif;
+  line-height: 1.2em;
+  text-align: center;
+  margin-right: 2rem;
+  width: 20px;
+  height: 20px;
+
+  /* Minimalist box outline */
+  border: 1px solid black;
+  background: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.select-checkbox::before {
+  /* Empty box glyph */
+  content: '';
+  color: black;
+}
+
+.select-checkbox:checked {
+  border-color: black;
+  background-color: black;
+}
+
+.select-checkbox:checked::before {
+  content: '+';
+  color: white;
+  font-family: 'FounderGrotesk_Medium', sans-serif;
+  font-size: 1rem;
+}
+
 
 #answers-list li {
-  padding: 1rem;
-  border: 0.5px solid #ffffff;
+  padding: 2rem;
   cursor: pointer;
-  font-family: 'FounderGrotesk_Regular', sans-serif;;
-}
-
-#answers-list li strong {
-  background-color: rgb(255, 74, 74);
-
-}
-
-#answers-list li .orangeStrong{
-  background-color: rgb(255, 119, 28);
-}
-
-#answers-list li .blueStrong{
-  background-color: rgb(74, 74, 255);
-}
-
-#answers-list p{
-  padding: 20px;
-  padding-bottom: 0;
-  padding-left: 5px;
-  margin-top: 10px;
-  border-left: 2px dashed rgb(148, 148, 148);
-  color: magenta;
-}
-
-#answers-list .row-number{
-  background-color: rgb(0, 255, 0);
-  color: black;
-  padding: 5px;
-  border-radius: 6px;
+  font-family: 'FounderGrotesk_Regular', sans-serif;
+  border: 1px solid black;
+  margin-bottom: 1rem;
+  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
 #answers-list li:hover {
+  transform: translateX(20px);
+}
+
+#answers-list .item-content {
+  display: flex;
+  flex-direction: column;
+}
+
+#answers-list .list-item-label{
+  display: flex;
+  align-items: center;
+}
+
+#answers-list li strong {
+  color: white;
+  padding: 5px 10px;
+  width: fit-content;
+  font-family: 'FounderGrotesk_Medium', sans-serif;
+}
+
+#answers-list li .orangeStrong{
+  background-color: orangered;
+}
+
+#answers-list li .blueStrong{
+  background-color: cornflowerblue;
+}
+
+#answers-list li .value-text{
   background-color: black;
+  padding: 5px 10px;
+  width: fit-content;
+  color: white;
+}
+
+#answers-list li .whatIsA{
+  background-color: rgba(255, 68, 0, 0.7);
+}
+
+#answers-list li .thatCould{
+  background-color: rgba(100, 148, 237, 0.7);
+}
+
+#answers-list p{
+  margin-top: 10px;
+  font-family: 'FounderGrotesk_Regular', sans-serif;
+  font-size: 1.2rem; 
+  width: 60%;
+}
+
+#answers-list .row-number{
+  padding: 5px;
+  width: fit-content;
+  background-color: rgb(210, 210, 210);
+  color: rgb(255, 255, 255);
+  aspect-ratio: 1 / 1;    
+  position: absolute;
+  right: 20px;
+}
+
+#answers-list li:hover {
 }
 
 #selected-count {
@@ -180,7 +254,6 @@
   bottom: 20px;
   right: 110px;
   padding: 10px;
-  background-color: rgb(0, 255, 2.0);
   color: black;
   font-size: 0.9rem;
   border: none;
@@ -206,7 +279,6 @@
     page-orientation: rotate-left;
   }
 
-  /* Remove all borders for printing */
   * {
     border: none !important;
   }
@@ -215,21 +287,19 @@
     margin: 0;
   }
 
-  /* Hide interface elements not needed in print */
   .select-question,
   #print-btn,
   #word-count,
   #answers-list,
+  #answers-wrapper,
   #selected-count {
     display: none !important;
   }
 
-  /* Hide the “live” print-surface nodes in the normal UI */
   .print-surface {
     display: none !important;
   }
 
-  /* Reveal only the cloned .print-surface elements inside #print-container */
   #print-container .print-surface {
     display: flex !important;
     width: 16.5in !important;
@@ -239,7 +309,6 @@
     box-sizing: border-box !important;
   }
 
-  /* Cards inside #print-container should follow the same print layout */
   #print-container .cards {
     width: 7.2in !important;
     margin-right: 0.2in !important;
@@ -253,6 +322,8 @@
     border: none !important;
     width: 75% !important;
     font-size: 2.2rem !important;
+    font-family: 'FounderGrotesk_Medium', sans-serif !important;
+    z-index: 1 !important;
   }
 
   #print-container .answer {
