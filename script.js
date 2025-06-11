@@ -9,7 +9,15 @@ const WEB_APP_BASE_URL =
  * Each answer object is expected to have: { orangeCard, blueCard, whatIsA, thatCould, freeText }.
  */
 function populateAnswersList(answerArray) {
+  // Remove loading spinner if present
+  const spinner = document.getElementById("loading-spinner");
+  if (spinner) {
+    clearInterval(Number(spinner.dataset.intervalId));
+    spinner.remove();
+  }
+
   const list = document.getElementById("answers-list");
+
   list.innerHTML = "";
 
   // If answerArray is not actually an Array, bail with an error message
@@ -199,6 +207,18 @@ document.addEventListener("DOMContentLoaded", () => {
     overlay.className = "overlay-text";
     card.appendChild(overlay);
   });
+
+  // Show loading text with animated dots
+  const spinner = document.createElement("div");
+  spinner.id = "loading-spinner";
+  spinner.textContent = "Loading";
+  document.body.appendChild(spinner);
+  let dotCount = 0;
+  const loadingInterval = setInterval(() => {
+    dotCount = (dotCount + 1) % 4;
+    spinner.textContent = "Loading" + ".".repeat(dotCount);
+  }, 500);
+  spinner.dataset.intervalId = loadingInterval;
 
   fetchAllAnswers();
 

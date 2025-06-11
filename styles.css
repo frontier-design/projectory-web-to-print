@@ -219,6 +219,7 @@
   padding: 5px 10px;
   width: fit-content;
   color: white;
+  letter-spacing: 0.02em;
 }
 
 #answers-list li .whatIsA{
@@ -258,6 +259,21 @@
   font-size: 0.9rem;
   border: none;
   font-family: 'FounderGrotesk_Regular', sans-serif;
+}
+
+
+/* Loading text spinner styling */
+#loading-spinner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1rem;
+  font-family: 'FounderGrotesk_Regular', sans-serif;
+  color: white;
+  padding: 10px;
+  z-index: 1000;
+  background-color: orangered;
 }
 
 @media print {
