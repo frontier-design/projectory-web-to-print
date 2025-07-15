@@ -1,0 +1,12 @@
+{
+  "timeZone": "America/Toronto",
+  "dependencies": {
+  },
+  "webapp": {
+    "access": "ANYONE_ANONYMOUS",
+    "executeAs": "USER_DEPLOYING"
+  },
+  "scriptId": "1wSAeuEJTWV3_8due78WPSkaogOK_k8Ekf9-rATOztG7ZuDE8hBjPJRFF",
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8"
+}

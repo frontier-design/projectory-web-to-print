@@ -1,15 +1,7 @@
-// script.js
-
-// Replace this with your actual deployed Web App URL (without any query string)
 const WEB_APP_BASE_URL =
-  "https://script.google.com/macros/s/AKfycbw3jszT16xnqHvT1OwYswb1hhzDcyzsc53vkCq-JdwCEmQG5VKY5W65c-mkm65LVIFG1A/exec";
+  "https://script.google.com/macros/s/AKfycbyBjqgKCilAgqqpy_HkuyrrJ0HaLka-Ch6yea-swOFSKnfRu7dPO7dTc4yLNx2gQ0ZR/exec";
 
-/**
- * Populate the #answers-list <ul> with one <li> per answer object.
- * Each answer object is expected to have: { orangeCard, blueCard, whatIsA, thatCould, freeText }.
- */
 function populateAnswersList(answerArray) {
-  // Remove loading spinner if present
   const spinner = document.getElementById("loading-spinner");
   if (spinner) {
     clearInterval(Number(spinner.dataset.intervalId));
@@ -20,7 +12,6 @@ function populateAnswersList(answerArray) {
 
   list.innerHTML = "";
 
-  // If answerArray is not actually an Array, bail with an error message
   if (!Array.isArray(answerArray)) {
     list.innerHTML = `<li style="color:red">Error: Expected an array of answers but got ${typeof answerArray}.</li>`;
     console.error("populateAnswersList expected array but got:", answerArray);
@@ -29,7 +20,6 @@ function populateAnswersList(answerArray) {
 
   answerArray.forEach((item, index) => {
     const rowNumber = index + 1;
-    // Create <li> and its inner structure
     const li = document.createElement("li");
     li.innerHTML = `
       <div class="list-item-label">
@@ -45,10 +35,8 @@ function populateAnswersList(answerArray) {
       </div>
     `;
 
-    // Reference the checkbox inside this <li>
     const checkbox = li.querySelector(".select-checkbox");
 
-    // When the checkbox changes, update the 'selected' class and the counter
     checkbox.addEventListener("change", (e) => {
       if (checkbox.checked) {
         li.classList.add("selected");
@@ -59,9 +47,7 @@ function populateAnswersList(answerArray) {
       updateSelectedCount();
     });
 
-    // Click on the <li> itself toggles selection and updates overlays
     li.addEventListener("click", (e) => {
-      // Ignore clicks directly on the checkbox (handled separately)
       if (e.target.closest(".select-checkbox")) return;
 
       // Update overlays with the current item's text
@@ -70,21 +56,15 @@ function populateAnswersList(answerArray) {
       const answerBox = document.getElementById("answer");
       answerBox.innerText = item.freeText;
 
-      // Toggle the checkbox and selected class
       checkbox.checked = !checkbox.checked;
       li.classList.toggle("selected", checkbox.checked);
       updateSelectedCount();
     });
 
-    // Append <li> to the list
     list.appendChild(li);
   });
 }
 
-/**
- * Update the displayed count of how many items are currently selected.
- * Expects a <span id="selected-count"> in the DOM.
- */
 function updateSelectedCount() {
   const selectedCountSpan = document.getElementById("selected-count");
   if (!selectedCountSpan) return;
@@ -92,10 +72,6 @@ function updateSelectedCount() {
   selectedCountSpan.textContent = `Selected: ${count}`;
 }
 
-/**
- * Build a hidden print-container that holds one .print-surface per selected <li>.
- * These clones will be the only visible .print-surface elements when printing.
- */
 function buildPrintContainer() {
   let printContainer = document.getElementById("print-container");
   if (!printContainer) {
@@ -108,7 +84,6 @@ function buildPrintContainer() {
 
   const selectedItems = document.querySelectorAll("#answers-list li.selected");
   selectedItems.forEach((li) => {
-    // Extract values from the clicked list item
     const whatIsA = li
       .querySelector(".item-content .whatIsA")
       .textContent.trim();
@@ -117,11 +92,9 @@ function buildPrintContainer() {
       .textContent.trim();
     const freeText = li.querySelector(".item-content p").textContent.trim();
 
-    // Create a new .print-surface wrapper
     const ps = document.createElement("div");
     ps.className = "print-surface";
 
-    // Create cards container
     const cardsDiv = document.createElement("div");
     cardsDiv.className = "cards";
 
@@ -185,21 +158,13 @@ async function fetchAllAnswers() {
   }
 }
 
-/**
- * When the DOM is ready:
- *  • Call fetchAllAnswers() to load current data.
- *  • Insert a <span id="selected-count"> next to the “Export” button.
- *  • Wire up the “Export” button to buildPrintContainer and print.
- */
 document.addEventListener("DOMContentLoaded", () => {
-  // Wrap the answers-list in a parent container
   const answersList = document.getElementById("answers-list");
   const answersWrapper = document.createElement("div");
   answersWrapper.id = "answers-wrapper";
   answersList.parentNode.insertBefore(answersWrapper, answersList);
   answersWrapper.appendChild(answersList);
 
-  // Dynamically add overlay containers to both cards
   ["orange", "blue"].forEach((color) => {
     const card = document.getElementById(`${color}-card`);
     const overlay = document.createElement("div");
@@ -208,7 +173,6 @@ document.addEventListener("DOMContentLoaded", () => {
     card.appendChild(overlay);
   });
 
-  // Show loading text with animated dots
   const spinner = document.createElement("div");
   spinner.id = "loading-spinner";
   spinner.textContent = "Loading";
@@ -222,7 +186,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   fetchAllAnswers();
 
-  // Move Export button and selected counter inside answers-wrapper
   const printBtn = document.getElementById("print-btn");
   const counterSpan = document.createElement("span");
   counterSpan.id = "selected-count";
@@ -230,7 +193,6 @@ document.addEventListener("DOMContentLoaded", () => {
   answersWrapper.appendChild(printBtn);
   answersWrapper.appendChild(counterSpan);
 
-  // Click handler for the Export button
   printBtn.addEventListener("click", () => {
     buildPrintContainer();
     document.getElementById("print-container").style.display = "block";

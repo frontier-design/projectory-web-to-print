@@ -1,6 +1,6 @@
 (async () => {
   const WEB_APP_URL =
-    "https://script.google.com/macros/s/AKfycbw3jszT16xnqHvT1OwYswb1hhzDcyzsc53vkCq-JdwCEmQG5VKY5W65c-mkm65LVIFG1A/exec?mode=answers";
+    "https://script.google.com/macros/s/AKfycbyBjqgKCilAgqqpy_HkuyrrJ0HaLka-Ch6yea-swOFSKnfRu7dPO7dTc4yLNx2gQ0ZR/exec?mode=answers";
 
   try {
     const res = await fetch(WEB_APP_URL);
