@@ -193,6 +193,28 @@ document.addEventListener("DOMContentLoaded", () => {
   answersWrapper.appendChild(printBtn);
   answersWrapper.appendChild(counterSpan);
 
+  // Create Select All button
+  const selectAllBtn = document.createElement("button");
+  selectAllBtn.id = "select-all-btn";
+  selectAllBtn.textContent = "Select All";
+  document.body.appendChild(selectAllBtn);
+
+  let allSelected = false;
+  selectAllBtn.addEventListener("click", () => {
+    const checkboxes = document.querySelectorAll(".select-checkbox");
+    const listItems = document.querySelectorAll("#answers-list li");
+
+    allSelected = !allSelected;
+
+    checkboxes.forEach((checkbox, index) => {
+      checkbox.checked = allSelected;
+      listItems[index].classList.toggle("selected", allSelected);
+    });
+
+    selectAllBtn.textContent = allSelected ? "Deselect All" : "Select All";
+    updateSelectedCount();
+  });
+
   printBtn.addEventListener("click", () => {
     buildPrintContainer();
     document.getElementById("print-container").style.display = "block";

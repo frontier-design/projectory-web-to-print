@@ -16,6 +16,9 @@
 @font-face {
   font-family: 'PermanentMarker';
   src: url('./assets/fonts/PermanentMarker-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
 }
 
 * {
@@ -117,6 +120,24 @@
   font-family: 'FounderGrotesk_Regular', sans-serif;
   background-color: orangered;
   color: white;
+}
+
+#select-all-btn {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  padding: 10px 20px;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+  font-family: 'FounderGrotesk_Regular', sans-serif;
+  background-color: cornflowerblue;
+  color: white;
+  transition: background-color 0.3s ease;
+}
+
+#select-all-btn:hover {
+  background-color: #5a9cff;
 }
 
 #answers-wrapper{
@@ -251,9 +272,6 @@
   right: 20px;
 }
 
-#answers-list li:hover {
-}
-
 #selected-count {
   position: fixed;
   bottom: 20px;
@@ -309,6 +327,7 @@
 
   .select-question,
   #print-btn,
+  #select-all-btn,
   #word-count,
   #answers-list,
   #answers-wrapper,
@@ -359,5 +378,6 @@
     background: none !important;
     font-size: 4.5rem !important;
     line-height: 4.6rem !important;
+    font-family: 'PermanentMarker', sans-serif !important;
   }
 }
