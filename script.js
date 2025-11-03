@@ -202,21 +202,55 @@ async function exportBatchedPDFs() {
     // Show loading indicator
     const exportBtn = document.getElementById("print-btn");
     const originalText = exportBtn.textContent;
-    exportBtn.textContent = "Generating PDFs...";
+    exportBtn.textContent = "Waking up server...";
     exportBtn.disabled = true;
 
-    // Call server API
-    const response = await fetch(`${config.API_URL}/generate-pdfs`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ items }),
-    });
+    // Call server API with retry for cold start
+    let response;
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    while (attempts < maxAttempts) {
+      try {
+        exportBtn.textContent = attempts === 0 ? "Waking up server..." : "Generating PDFs...";
+        
+        response = await fetch(`${config.API_URL}/generate-pdfs`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ items }),
+        });
+
+        if (response.ok) {
+          break; // Success!
+        }
+        
+        if (response.status === 500 && attempts < maxAttempts - 1) {
+          console.log(`Attempt ${attempts + 1} failed, retrying...`);
+          await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5s before retry
+          attempts++;
+          continue;
+        }
+        
+        throw new Error(`Server error: ${response.status}`);
+        
+      } catch (fetchError) {
+        if (fetchError.message.includes('Failed to fetch') && attempts < maxAttempts - 1) {
+          console.log(`Server starting up, waiting... (attempt ${attempts + 1}/${maxAttempts})`);
+          await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10s for cold start
+          attempts++;
+          continue;
+        }
+        throw fetchError;
+      }
+    }
 
     if (!response.ok) {
       throw new Error(`Server error: ${response.status}`);
     }
+    
+    exportBtn.textContent = "Downloading ZIP...";
 
     // Download ZIP
     const blob = await response.blob();
