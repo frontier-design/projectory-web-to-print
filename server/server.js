@@ -129,9 +129,21 @@ app.post('/generate-pdfs', async (req, res) => {
 
     // Read CSS and SVG files
     console.log('Reading CSS file...');
+    console.log('__dirname:', __dirname);
     const cssPath = path.join(__dirname, '..', 'styles.css');
     console.log('CSS path:', cssPath);
+    
+    // Check if file exists
+    try {
+      await fs.access(cssPath);
+      console.log('CSS file exists');
+    } catch (err) {
+      console.error('CSS file NOT found at:', cssPath);
+      throw new Error(`CSS file not found at ${cssPath}`);
+    }
+    
     const cssContent = await fs.readFile(cssPath, 'utf-8');
+    console.log('CSS file read successfully');
     
     console.log('Reading SVG files...');
     const orangeSvgPath = path.join(assetsPath, 'orange.svg');
@@ -140,12 +152,14 @@ app.post('/generate-pdfs', async (req, res) => {
     console.log('Blue SVG path:', blueSvgPath);
     const orangeSvg = await fs.readFile(orangeSvgPath, 'base64');
     const blueSvg = await fs.readFile(blueSvgPath, 'base64');
+    console.log('SVG files read successfully');
 
     // Read fonts
     console.log('Reading fonts...');
     const founderGroteskRegular = await fs.readFile(path.join(fontsPath, 'FoundersGrotesk-Regular.otf'), 'base64');
     const founderGroteskMedium = await fs.readFile(path.join(fontsPath, 'FoundersGrotesk-Medium.otf'), 'base64');
     const permanentMarker = await fs.readFile(path.join(fontsPath, 'PermanentMarker-Regular.ttf'), 'base64');
+    console.log('Fonts read successfully');
 
     // Embed fonts in CSS - replace entire src declarations
     const cssWithFonts = cssContent
