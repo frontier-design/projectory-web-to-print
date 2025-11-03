@@ -74,6 +74,7 @@
   flex-direction: column;
   height: 100%;
   box-sizing: border-box;
+
 }
 
 .answer-box {
@@ -110,9 +111,6 @@
 }
 
 #print-btn {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
   padding: 10px 20px;
   font-size: 1rem;
   border: none;
@@ -120,12 +118,10 @@
   font-family: 'FounderGrotesk_Regular', sans-serif;
   background-color: orangered;
   color: white;
+  width: 100%;
 }
 
 #select-all-btn {
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
   padding: 10px 20px;
   font-size: 1rem;
   border: none;
@@ -134,6 +130,7 @@
   background-color: cornflowerblue;
   color: white;
   transition: background-color 0.3s ease;
+  width: 100%;
 }
 
 #select-all-btn:hover {
@@ -144,11 +141,34 @@
   position: fixed;
   left: 0;
   top: 0;
-  width: 100%;
+  width: 80%;
   height: 100vh;
   overflow-y: auto;
-  padding-top: 50px;
   background-color: white;
+}
+
+#control-panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 20%;
+  height: 100vh;
+  background-color: #f5f5f5;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  border-left: 1px solid #ddd;
+}
+
+#control-panel .counts-container {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+#control-panel #print-btn {
+  margin-top: auto;
 }
 
 #answers-list {
@@ -158,129 +178,91 @@
 }
 
 .select-checkbox {
-  /* Hide native appearance */
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-
-  /* Use FounderGrotesk for the checkbox glyph */
-  font-family: 'FounderGrotesk_Regular', sans-serif;
-  line-height: 1.2em;
-  text-align: center;
-  margin-right: 2rem;
-  width: 20px;
-  height: 20px;
-  min-width: 20px;
-
-  /* Minimalist box outline */
-  border: 1px solid black;
-  background: none;
   cursor: pointer;
-  transition: border-color 0.2s ease;
-}
-
-
-.select-checkbox::before {
-  /* Empty box glyph */
-  content: '';
-  color: black;
-}
-
-.select-checkbox:checked {
-  border-color: black;
-  background-color: black;
-}
-
-.select-checkbox:checked::before {
-  content: '+';
-  color: white;
-  font-family: 'FounderGrotesk_Medium', sans-serif;
-  font-size: 1rem;
+  width: 15px;
+  aspect-ratio: 1/1;
 }
 
 #answers-list li {
-  position: relative;
-  padding: 2rem;
+  display: grid;
+  grid-template-columns: 60px 60px minmax(150px, 1fr) minmax(150px, 1fr) minmax(200px, 2fr);
+  row-gap: 0;
+  align-items: stretch;
   cursor: pointer;
-  font-family: 'FounderGrotesk_Regular', sans-serif;
-  border: 1px solid black;
-  width: 650px;
-  margin: auto;
-  margin-bottom: 1rem;
-  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+  border-bottom: 0.5px solid black;
 }
 
-#answers-list li:hover {
-  transform: translateX(20px);
+#answers-list .row-number {
+  text-align: left;
+  padding: 10px 0;
+  padding-left: 25px;
 }
 
-#answers-list .item-content {
-  display: flex;
-  flex-direction: column;
-}
-
-#answers-list .list-item-label{
+#answers-list li > * {
+  padding: 10px 0;
   display: flex;
   align-items: center;
 }
 
-#answers-list li strong {
-  color: white;
-  padding: 5px 10px;
-  width: fit-content;
-  font-family: 'FounderGrotesk_Medium', sans-serif;
+/* Column background colors */
+#answers-list li > *:nth-child(3) {
+  color: orangered;
+  background-color: rgba(255, 68, 0, 0.20);
+  padding: 10px 25px;
 }
 
-#answers-list li .orangeStrong{
+#answers-list li > *:nth-child(4) {
+  color: rgb(64, 131, 255);
+  background-color: rgba(100, 148, 237, 0.20);
+  padding: 10px 25px;
+}
+
+#answers-list li > *:nth-child(5) {
+  padding: 10px 25px;
+}
+
+/* Header row styling */
+#answers-list .list-header {
+  font-weight: 800;
+  border-bottom: 1px solid black;
+  position: sticky;
+  top: 0;
+  background-color: white;
+}
+
+#answers-list .list-header > *:nth-child(3) {
+  color: white;
   background-color: orangered;
 }
 
-#answers-list li .blueStrong{
-  background-color: cornflowerblue;
-}
-
-#answers-list li .value-text{
-  background-color: black;
-  padding: 5px 10px;
-  width: fit-content;
+#answers-list .list-header > *:nth-child(4) {
   color: white;
-  letter-spacing: 0.02em;
+  background-color: rgb(64, 131, 255);
 }
 
-#answers-list li .whatIsA{
-  background-color: rgba(255, 68, 0, 0.7);
-}
-
-#answers-list li .thatCould{
-  background-color: rgba(100, 148, 237, 0.7);
-}
-
-#answers-list p{
-  margin-top: 10px;
-  font-family: 'FounderGrotesk_Regular', sans-serif;
-  font-size: 1.2rem; 
-  width: 80%;
-}
-
-#answers-list .row-number{
-  padding: 5px;
-  width: fit-content;
-  background-color: rgb(210, 210, 210);
-  color: rgb(255, 255, 255);
-  aspect-ratio: 1 / 1;    
-  position: absolute;
-  right: 20px;
+#answers-list .list-header > *:nth-child(5) {
+  color: white;
+  background-color: black;
 }
 
 #selected-count {
-  position: fixed;
-  bottom: 20px;
-  right: 110px;
-  padding: 10px;
+  padding: 8px;
   color: black;
   font-size: 0.9rem;
   border: none;
   font-family: 'FounderGrotesk_Regular', sans-serif;
+  flex: 1;
+  text-align: right;
+}
+
+#total-count {
+  padding: 8px;
+  color: black;
+  font-size: 0.9rem;
+  border: none;
+  font-family: 'FounderGrotesk_Regular', sans-serif;
+  flex: 1;
+  text-align: left;
 }
 
 
@@ -331,7 +313,9 @@
   #word-count,
   #answers-list,
   #answers-wrapper,
-  #selected-count {
+  #selected-count,
+  #total-count,
+  #control-panel {
     display: none !important;
   }
 

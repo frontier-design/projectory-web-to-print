@@ -18,21 +18,33 @@ function populateAnswersList(answerArray) {
     return;
   }
 
+  // Create header row
+  const header = document.createElement("li");
+  header.className = "list-header";
+  header.innerHTML = `
+    <span class="header-cell"></span>
+    <span class="header-cell"></span>
+    <span class="header-cell">What is a</span>
+    <span class="header-cell">That Could</span>
+    <span class="header-cell">Answer</span>
+  `;
+  list.appendChild(header);
+
+  // Update total count
+  const totalCountSpan = document.getElementById("total-count");
+  if (totalCountSpan) {
+    totalCountSpan.textContent = `Total: ${answerArray.length}`;
+  }
+
   answerArray.forEach((item, index) => {
     const rowNumber = index + 1;
     const li = document.createElement("li");
     li.innerHTML = `
-      <div class="list-item-label">
-        <input type="checkbox" class="select-checkbox" />
-        <div class="item-content">
-          <span class="row-number">${rowNumber}</span>
-          <strong class="orangeStrong">What Is A</strong>
-          <span class="whatIsA value-text">${item.whatIsA}</span><br/>
-          <strong class="blueStrong">That Could</strong>
-          <span class="thatCould value-text">${item.thatCould}</span><br/>
-          <p>${item.freeText}</p>
-        </div>
-      </div>
+      <span class="row-number">${rowNumber}</span>
+      <input type="checkbox" class="select-checkbox" />
+      <span class="whatIsA value-text">${item.whatIsA}</span>
+      <span class="thatCould value-text">${item.thatCould}</span>
+      <span class="answer-text">${item.freeText}</span>
     `;
 
     const checkbox = li.querySelector(".select-checkbox");
@@ -72,7 +84,7 @@ function updateSelectedCount() {
   selectedCountSpan.textContent = `Selected: ${count}`;
 }
 
-function buildPrintContainer() {
+function buildPrintContainer(itemsToInclude = null) {
   let printContainer = document.getElementById("print-container");
   if (!printContainer) {
     printContainer = document.createElement("div");
@@ -82,15 +94,26 @@ function buildPrintContainer() {
   }
   printContainer.innerHTML = "";
 
-  const selectedItems = document.querySelectorAll("#answers-list li.selected");
+  // Use provided items or get all selected items
+  const selectedItems =
+    itemsToInclude ||
+    Array.from(
+      document.querySelectorAll("#answers-list li.selected:not(.list-header)")
+    );
+
   selectedItems.forEach((li) => {
-    const whatIsA = li
-      .querySelector(".item-content .whatIsA")
-      .textContent.trim();
-    const thatCould = li
-      .querySelector(".item-content .thatCould")
-      .textContent.trim();
-    const freeText = li.querySelector(".item-content p").textContent.trim();
+    const whatIsAEl = li.querySelector(".whatIsA");
+    const thatCouldEl = li.querySelector(".thatCould");
+    const freeTextEl = li.querySelector(".answer-text");
+
+    if (!whatIsAEl || !thatCouldEl || !freeTextEl) {
+      console.error("Missing element in selected item:", li);
+      return;
+    }
+
+    const whatIsA = whatIsAEl.textContent.trim();
+    const thatCould = thatCouldEl.textContent.trim();
+    const freeText = freeTextEl.textContent.trim();
 
     const ps = document.createElement("div");
     ps.className = "print-surface";
@@ -134,6 +157,94 @@ function buildPrintContainer() {
     // Append to print-container
     printContainer.appendChild(ps);
   });
+}
+
+/**
+ * Export selected items as batched PDFs via server (35 items per PDF)
+ * Server generates PDFs with Puppeteer and returns as ZIP
+ */
+async function exportBatchedPDFs() {
+  const selectedItems = Array.from(
+    document.querySelectorAll("#answers-list li.selected:not(.list-header)")
+  );
+
+  if (selectedItems.length === 0) {
+    alert("No items selected for export");
+    return;
+  }
+
+  const totalBatches = Math.ceil(selectedItems.length / 35);
+
+  const confirmMsg = `This will automatically generate and download ${totalBatches} PDF file(s) in a ZIP:\n\n${
+    totalBatches === 1
+      ? "comboconvo-1.pdf"
+      : `comboconvo-1.pdf through comboconvo-${totalBatches}.pdf`
+  }\n\nClick OK to start.`;
+
+  if (!confirm(confirmMsg)) {
+    return;
+  }
+
+  // Extract item data
+  const items = selectedItems.map((li) => {
+    const whatIsAEl = li.querySelector(".whatIsA");
+    const thatCouldEl = li.querySelector(".thatCould");
+    const freeTextEl = li.querySelector(".answer-text");
+
+    return {
+      whatIsA: whatIsAEl ? whatIsAEl.textContent.trim() : "",
+      thatCould: thatCouldEl ? thatCouldEl.textContent.trim() : "",
+      freeText: freeTextEl ? freeTextEl.textContent.trim() : "",
+    };
+  });
+
+  try {
+    // Show loading indicator
+    const exportBtn = document.getElementById("print-btn");
+    const originalText = exportBtn.textContent;
+    exportBtn.textContent = "Generating PDFs...";
+    exportBtn.disabled = true;
+
+    // Call server API
+    const response = await fetch(`${config.API_URL}/generate-pdfs`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ items }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Server error: ${response.status}`);
+    }
+
+    // Download ZIP
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "comboconvo-pdfs.zip";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    exportBtn.textContent = originalText;
+    exportBtn.disabled = false;
+
+    alert(
+      `Export complete! Downloaded ZIP with ${totalBatches} PDF file(s). 🎉`
+    );
+  } catch (error) {
+    console.error("Export error:", error);
+    alert(
+      `Export failed: ${error.message}\n\nMake sure the server is running:\n1. Open terminal\n2. cd server\n3. npm start`
+    );
+
+    const exportBtn = document.getElementById("print-btn");
+    exportBtn.textContent = "Export";
+    exportBtn.disabled = false;
+  }
 }
 
 /**
@@ -186,18 +297,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
   fetchAllAnswers();
 
-  const printBtn = document.getElementById("print-btn");
-  const counterSpan = document.createElement("span");
-  counterSpan.id = "selected-count";
-  counterSpan.textContent = "Selected: 0";
-  answersWrapper.appendChild(printBtn);
-  answersWrapper.appendChild(counterSpan);
+  // Create control panel container
+  const controlPanel = document.createElement("div");
+  controlPanel.id = "control-panel";
+  document.body.appendChild(controlPanel);
 
   // Create Select All button
   const selectAllBtn = document.createElement("button");
   selectAllBtn.id = "select-all-btn";
   selectAllBtn.textContent = "Select All";
-  document.body.appendChild(selectAllBtn);
+  controlPanel.appendChild(selectAllBtn);
+
+  // Create counts container
+  const countsContainer = document.createElement("div");
+  countsContainer.className = "counts-container";
+  controlPanel.appendChild(countsContainer);
+
+  // Create total count span
+  const totalSpan = document.createElement("span");
+  totalSpan.id = "total-count";
+  totalSpan.textContent = "Total: 0";
+  countsContainer.appendChild(totalSpan);
+
+  // Create counter span
+  const counterSpan = document.createElement("span");
+  counterSpan.id = "selected-count";
+  counterSpan.textContent = "Selected: 0";
+  countsContainer.appendChild(counterSpan);
+
+  // Move print button to control panel (will be at bottom due to margin-top: auto)
+  const printBtn = document.getElementById("print-btn");
+  controlPanel.appendChild(printBtn);
 
   let allSelected = false;
   selectAllBtn.addEventListener("click", () => {
@@ -215,10 +345,7 @@ document.addEventListener("DOMContentLoaded", () => {
     updateSelectedCount();
   });
 
-  printBtn.addEventListener("click", () => {
-    buildPrintContainer();
-    document.getElementById("print-container").style.display = "block";
-    window.print();
-    document.getElementById("print-container").style.display = "none";
+  printBtn.addEventListener("click", async () => {
+    await exportBatchedPDFs();
   });
 });
