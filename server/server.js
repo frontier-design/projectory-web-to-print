@@ -11,8 +11,8 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// Read CSS and fonts
-const assetsPath = path.join(__dirname, '..', 'assets');
+// Read CSS and fonts - use local copies in server folder (copied during build)
+const assetsPath = path.join(__dirname, 'assets');
 const fontsPath = path.join(assetsPath, 'fonts');
 
 // Health check endpoint
@@ -127,10 +127,10 @@ app.post('/generate-pdfs', async (req, res) => {
 
     console.log(`Generating PDFs for ${items.length} items...`);
 
-    // Read CSS and SVG files
+    // Read CSS and SVG files (from local server directory)
     console.log('Reading CSS file...');
     console.log('__dirname:', __dirname);
-    const cssPath = path.join(__dirname, '..', 'styles.css');
+    const cssPath = path.join(__dirname, 'styles.css');
     console.log('CSS path:', cssPath);
     
     // Check if file exists
@@ -139,7 +139,7 @@ app.post('/generate-pdfs', async (req, res) => {
       console.log('CSS file exists');
     } catch (err) {
       console.error('CSS file NOT found at:', cssPath);
-      throw new Error(`CSS file not found at ${cssPath}`);
+      throw new Error(`CSS file not found at ${cssPath}. Make sure to run npm install which runs copy-assets.js`);
     }
     
     const cssContent = await fs.readFile(cssPath, 'utf-8');
