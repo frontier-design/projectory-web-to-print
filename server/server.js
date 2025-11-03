@@ -8,7 +8,19 @@ const fs = require("fs").promises;
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+// CORS configuration - allow GitHub Pages origin
+app.use(
+  cors({
+    origin: "*", // Allow all origins (or specify your GitHub Pages URL)
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
+    credentials: false,
+  })
+);
+
+// Handle preflight requests
+app.options("*", cors());
+
 app.use(express.json({ limit: "50mb" }));
 
 // Read CSS and fonts - use local copies in server folder (copied during build)
