@@ -18,9 +18,6 @@ app.use(
   })
 );
 
-// Handle preflight requests
-app.options("*", cors());
-
 app.use(express.json({ limit: "50mb" }));
 
 // Read CSS and fonts - use local copies in server folder (copied during build)
