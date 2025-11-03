@@ -4,5 +4,5 @@ const config = {
   API_URL:
     window.location.hostname === "localhost"
       ? "http://localhost:3000"
-      : "https://projectory-web-to-print.onrender.com/", // Update this after deploying to Render
+      : "https://projectory-web-to-print.onrender.com", // Update this after deploying to Render
 };
