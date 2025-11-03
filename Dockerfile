@@ -44,22 +44,24 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better caching
 COPY server/package*.json ./
 
 # Install dependencies (including Puppeteer which will download Chrome)
-RUN npm install
+RUN npm ci --only=production
+
+# Copy assets and styles into server directory structure
+COPY styles.css ./styles.css
+COPY assets ./assets
 
 # Copy server files
-COPY server/ ./
+COPY server/server.js ./server.js
+COPY server/copy-assets.js ./copy-assets.js
+COPY server/.puppeteerrc.cjs ./.puppeteerrc.cjs
 
-# Copy assets and styles from parent directory
-COPY styles.css ./styles.css
-COPY assets/ ./assets/
-
-# Expose port
+# Expose port (Render uses PORT env var)
 EXPOSE 3000
 
 # Start server
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
 
