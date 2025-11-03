@@ -4,9 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "postinstall": "node copy-assets.js && echo 'Installing Chrome for Puppeteer...' && npx puppeteer browsers install chrome && echo 'Chrome installation complete'",
     "start": "node server.js",
-    "build": "npm install",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
