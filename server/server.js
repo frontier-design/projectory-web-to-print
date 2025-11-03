@@ -292,17 +292,20 @@ app.post("/generate-pdfs", async (req, res) => {
       // Generate HTML for this batch
       const html = generateHTML(batchItems, cssWithFonts, orangeSvg, blueSvg);
 
-      // Create a new page
+      // Create a new page with increased timeout
       const page = await browser.newPage();
 
-      // Set content
-      await page.setContent(html, { waitUntil: "networkidle0" });
+      // Set content with longer timeout and less strict wait condition
+      await page.setContent(html, {
+        waitUntil: "domcontentloaded", // Less strict than networkidle0
+        timeout: 60000, // 60 second timeout
+      });
 
       // Wait for fonts to load
       await page.evaluateHandle("document.fonts.ready");
 
       // Additional wait for rendering and font application
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Generate PDF with print CSS
       const pdfBuffer = await page.pdf({
