@@ -150,9 +150,20 @@ function buildPrintContainer(itemsToInclude = null) {
     answerBox.textContent = freeText;
     answerDiv.appendChild(answerBox);
 
+    // AI image container (for preview - shows where image will appear)
+    const aiImageContainer = document.createElement("div");
+    aiImageContainer.className = "ai-image-container";
+    // Add placeholder text to show it's for AI images
+    const placeholder = document.createElement("div");
+    placeholder.style.cssText =
+      "color: teal; font-size: 0.9rem; text-align: center; opacity: 0.6;";
+    placeholder.textContent = "AI Image";
+    aiImageContainer.appendChild(placeholder);
+
     // Assemble print-surface
     ps.appendChild(cardsDiv);
     ps.appendChild(answerDiv);
+    ps.appendChild(aiImageContainer);
 
     // Append to print-container
     printContainer.appendChild(ps);
@@ -209,11 +220,12 @@ async function exportBatchedPDFs() {
     let response;
     let attempts = 0;
     const maxAttempts = 3;
-    
+
     while (attempts < maxAttempts) {
       try {
-        exportBtn.textContent = attempts === 0 ? "Waking up server..." : "Generating PDFs...";
-        
+        exportBtn.textContent =
+          attempts === 0 ? "Waking up server..." : "Generating PDFs...";
+
         response = await fetch(`${config.API_URL}/generate-pdfs`, {
           method: "POST",
           headers: {
@@ -225,20 +237,26 @@ async function exportBatchedPDFs() {
         if (response.ok) {
           break; // Success!
         }
-        
+
         if (response.status === 500 && attempts < maxAttempts - 1) {
           console.log(`Attempt ${attempts + 1} failed, retrying...`);
-          await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5s before retry
+          await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5s before retry
           attempts++;
           continue;
         }
-        
+
         throw new Error(`Server error: ${response.status}`);
-        
       } catch (fetchError) {
-        if (fetchError.message.includes('Failed to fetch') && attempts < maxAttempts - 1) {
-          console.log(`Server starting up, waiting... (attempt ${attempts + 1}/${maxAttempts})`);
-          await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10s for cold start
+        if (
+          fetchError.message.includes("Failed to fetch") &&
+          attempts < maxAttempts - 1
+        ) {
+          console.log(
+            `Server starting up, waiting... (attempt ${
+              attempts + 1
+            }/${maxAttempts})`
+          );
+          await new Promise((resolve) => setTimeout(resolve, 10000)); // Wait 10s for cold start
           attempts++;
           continue;
         }
@@ -249,7 +267,7 @@ async function exportBatchedPDFs() {
     if (!response.ok) {
       throw new Error(`Server error: ${response.status}`);
     }
-    
+
     exportBtn.textContent = "Downloading ZIP...";
 
     // Download ZIP
