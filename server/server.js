@@ -78,8 +78,11 @@ async function generateAIImage(prompt, timeout = 30000) {
   }
 
   try {
+    // Add style instructions to the prompt
+    const styledPrompt = `${prompt.trim()}, drawn by a black pen marker, white background, cartoony style`;
+
     console.log(
-      `Generating AI image for prompt: "${prompt.substring(0, 50)}..."`
+      `Generating AI image for prompt: "${styledPrompt.substring(0, 80)}..."`
     );
 
     // Create a promise that will timeout
@@ -90,7 +93,7 @@ async function generateAIImage(prompt, timeout = 30000) {
     // Generate image with timeout
     const imagePromise = openai.images.generate({
       model: "dall-e-3",
-      prompt: prompt.trim(),
+      prompt: styledPrompt,
       n: 1,
       size: "1024x1024",
       quality: "standard",
