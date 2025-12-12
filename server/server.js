@@ -4,6 +4,19 @@ const JSZip = require("jszip");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs").promises;
+const OpenAI = require("openai");
+const https = require("https");
+
+// Load environment variables from .env file if it exists (for local development)
+try {
+  require("dotenv").config({ path: path.join(__dirname, ".env") });
+  console.log("Environment variables loaded from .env file");
+} catch (e) {
+  // dotenv not available, that's okay - environment variables will come from system
+  console.log(
+    "Note: Could not load .env file, using system environment variables"
+  );
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,6 +36,112 @@ app.use(express.json({ limit: "50mb" }));
 // Read CSS and fonts - use local copies in server folder (copied during build)
 const assetsPath = path.join(__dirname, "assets");
 const fontsPath = path.join(assetsPath, "fonts");
+
+// Initialize OpenAI client
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
+  : null;
+
+// Debug: Log API key status (without exposing the key)
+if (openai) {
+  console.log("OpenAI client initialized successfully");
+  console.log(
+    "API Key present:",
+    process.env.OPENAI_API_KEY
+      ? "Yes (length: " + process.env.OPENAI_API_KEY.length + ")"
+      : "No"
+  );
+} else {
+  console.warn("⚠️  OpenAI client NOT initialized - API key missing!");
+  console.warn(
+    "   Set OPENAI_API_KEY environment variable or create .env file"
+  );
+}
+
+/**
+ * Generate AI image using OpenAI DALL-E API
+ * @param {string} prompt - The text prompt for image generation
+ * @param {number} timeout - Timeout in milliseconds (default: 30000)
+ * @returns {Promise<string|null>} - Base64 encoded image or null if generation fails
+ */
+async function generateAIImage(prompt, timeout = 30000) {
+  if (!openai) {
+    console.warn("OpenAI API key not configured, skipping image generation");
+    return null;
+  }
+
+  if (!prompt || prompt.trim().length === 0) {
+    console.warn("Empty prompt provided, skipping image generation");
+    return null;
+  }
+
+  try {
+    console.log(
+      `Generating AI image for prompt: "${prompt.substring(0, 50)}..."`
+    );
+
+    // Create a promise that will timeout
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Image generation timeout")), timeout);
+    });
+
+    // Generate image with timeout
+    const imagePromise = openai.images.generate({
+      model: "dall-e-3",
+      prompt: prompt.trim(),
+      n: 1,
+      size: "1024x1024",
+      quality: "standard",
+    });
+
+    const response = await Promise.race([imagePromise, timeoutPromise]);
+    const imageUrl = response.data[0].url;
+
+    if (!imageUrl) {
+      console.error("No image URL returned from OpenAI");
+      return null;
+    }
+
+    // Download image and convert to base64
+    const imageBase64 = await downloadImageAsBase64(imageUrl);
+    console.log("AI image generated successfully");
+    return imageBase64;
+  } catch (error) {
+    console.error("Error generating AI image:", error.message);
+    return null; // Return null on error to allow graceful degradation
+  }
+}
+
+/**
+ * Download image from URL and convert to base64
+ * @param {string} url - Image URL
+ * @returns {Promise<string>} - Base64 encoded image
+ */
+function downloadImageAsBase64(url) {
+  return new Promise((resolve, reject) => {
+    https
+      .get(url, (response) => {
+        if (response.statusCode !== 200) {
+          reject(new Error(`Failed to download image: ${response.statusCode}`));
+          return;
+        }
+
+        const chunks = [];
+        response.on("data", (chunk) => chunks.push(chunk));
+        response.on("end", () => {
+          const buffer = Buffer.concat(chunks);
+          const base64 = buffer.toString("base64");
+          // Determine content type from URL or default to png
+          const contentType = response.headers["content-type"] || "image/png";
+          resolve(`data:${contentType};base64,${base64}`);
+        });
+        response.on("error", reject);
+      })
+      .on("error", reject);
+  });
+}
 
 // Health check endpoint
 app.get("/health", (req, res) => {
@@ -110,25 +229,52 @@ app.post("/debug-html", async (req, res) => {
 });
 
 // Generate HTML for a batch of items
+// items should have structure: { whatIsA, thatCould, freeText, aiImage? }
+// aiImage is optional base64 data URI or null
 function generateHTML(items, cssContent, orangeSvg, blueSvg) {
   const printSurfaces = items
-    .map(
-      (item) => `
+    .map((item) => {
+      // Escape HTML in text content to prevent XSS
+      const escapeHtml = (text) => {
+        if (!text) return "";
+        const div = { innerHTML: "" };
+        return String(text)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      };
+
+      const whatIsA = escapeHtml(item.whatIsA);
+      const thatCould = escapeHtml(item.thatCould);
+      const freeText = escapeHtml(item.freeText);
+      const aiImage = item.aiImage || null;
+
+      // Include AI image if available
+      const aiImageHtml = aiImage
+        ? `<div class="ai-image-container">
+               <img src="${aiImage}" alt="AI Generated Image" class="ai-image" />
+             </div>`
+        : "";
+
+      return `
     <div class="print-surface">
       <div class="cards">
         <div class="card orange-card">
-          <div class="overlay-text">${item.whatIsA}</div>
+          <div class="overlay-text">${whatIsA}</div>
         </div>
         <div class="card blue-card">
-          <div class="overlay-text">${item.thatCould}</div>
+          <div class="overlay-text">${thatCould}</div>
         </div>
       </div>
       <div class="answer">
-        <div class="answer-box">${item.freeText}</div>
+        <div class="answer-box">${freeText}</div>
       </div>
+      ${aiImageHtml}
     </div>
-  `
-    )
+  `;
+    })
     .join("");
 
   return `
@@ -289,8 +435,55 @@ app.post("/generate-pdfs", async (req, res) => {
         } items)...`
       );
 
-      // Generate HTML for this batch
-      const html = generateHTML(batchItems, cssWithFonts, orangeSvg, blueSvg);
+      // Generate AI images for all items in this batch (in parallel for better performance)
+      if (!openai) {
+        console.warn(
+          `⚠️  Skipping AI image generation for batch ${
+            batchIndex + 1
+          } - OpenAI API key not configured`
+        );
+        console.warn(
+          "   Set OPENAI_API_KEY environment variable to enable image generation"
+        );
+      } else {
+        console.log(`Generating AI images for batch ${batchIndex + 1}...`);
+      }
+
+      const itemsWithImages = await Promise.all(
+        batchItems.map(async (item) => {
+          try {
+            const aiImage = await generateAIImage(item.freeText || "");
+            return {
+              ...item,
+              aiImage: aiImage, // Will be null if generation fails
+            };
+          } catch (error) {
+            console.error(`Error generating image for item: ${error.message}`);
+            // Continue without image on error
+            return {
+              ...item,
+              aiImage: null,
+            };
+          }
+        })
+      );
+
+      const imagesGenerated = itemsWithImages.filter(
+        (item) => item.aiImage !== null
+      ).length;
+      console.log(
+        `Generated ${imagesGenerated}/${batchItems.length} images for batch ${
+          batchIndex + 1
+        }`
+      );
+
+      // Generate HTML for this batch with images
+      const html = generateHTML(
+        itemsWithImages,
+        cssWithFonts,
+        orangeSvg,
+        blueSvg
+      );
 
       // Create a new page with increased timeout
       const page = await browser.newPage();

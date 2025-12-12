@@ -8,4 +8,5 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-
+      # Note: OPENAI_API_KEY should be set in Render.com dashboard under Environment Variables
+      # for security reasons. Do not commit API keys to version control.
