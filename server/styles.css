@@ -55,7 +55,6 @@
   width: 100%;
   height: 500px;
   padding: 25px;
-  border: 1px solid red;
 }
 
 .cards {
@@ -65,7 +64,6 @@
   flex-direction: row;
   gap: 20px;
   justify-content: space-between;
-  border: 1px dashed magenta;
 }
 
 .answer {
@@ -79,26 +77,29 @@
 
 .ai-image-container {
   flex: 0 0 auto;
-  width: 320px;
-  max-width: 320px;
-  min-width: 320px;
-  height: 450px;
-  min-height: 450px;
+  width: 360px;
+  max-width: 360px;
+  min-width: 360px;
+  height: 480px;
+  min-height: 480px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
+  padding: 15px;
+  overflow: hidden;
   box-sizing: border-box;
-  border: 2px solid teal;
-  background-color: rgba(0, 128, 128, 0.05);
+  background-color: #fafafa;
+  border-radius: 12px;
 }
 
 .ai-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .answer-box {
@@ -395,18 +396,22 @@
     width: 3.2in !important;
     max-width: 3.2in !important;
     height: 100% !important;
-    padding: 0 !important;
+    padding: 10px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     box-sizing: border-box !important;
-    border: 1px solid red !important;
+    overflow: hidden !important;
+    background-color: #fafafa !important;
   }
 
   #print-container .ai-image {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+    object-position: center !important;
     border-radius: 4px !important;
   }
 }
