@@ -8,5 +8,7 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      # Note: OPENAI_API_KEY should be set in Render.com dashboard under Environment Variables
-      # for security reasons. Do not commit API keys to version control.
+      # Note: GEMINI_API_KEY and GEMINI_PROJECT_ID should be set in Render.com dashboard
+      # under Environment Variables for security reasons. Do not commit API keys to version control.
+      # GEMINI_API_KEY should be an access token (from gcloud auth print-access-token)
+      # or a service account JSON key as a string

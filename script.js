@@ -171,6 +171,50 @@ function buildPrintContainer(itemsToInclude = null) {
 }
 
 /**
+ * Wake up the server with health check requests
+ * Handles Render.com cold starts by retrying with exponential backoff
+ * @param {string} apiUrl - The base API URL
+ * @param {function} addLogEntry - Function to add log entries to the UI
+ * @param {number} maxAttempts - Maximum number of attempts (default: 6)
+ * @returns {Promise<boolean>} - True if server is ready, false otherwise
+ */
+async function wakeUpServer(apiUrl, addLogEntry, maxAttempts = 6) {
+  // Attempts with exponential backoff: ~75s total max wait
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      addLogEntry(
+        attempt === 0
+          ? "Waking up server..."
+          : `Server starting up... (attempt ${attempt + 1}/${maxAttempts})`,
+        "info"
+      );
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout per attempt
+
+      const response = await fetch(`${apiUrl}/health`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        addLogEntry("Server is ready!", "success");
+        return true;
+      }
+    } catch (error) {
+      console.log(`[WakeUp] Attempt ${attempt + 1} failed:`, error.message);
+      if (attempt < maxAttempts - 1) {
+        // Wait before retry (exponential backoff: 5s, 10s, 15s...)
+        const waitTime = 5000 * (attempt + 1);
+        addLogEntry(`Waiting ${waitTime / 1000}s before retry...`, "info");
+        await new Promise((r) => setTimeout(r, waitTime));
+      }
+    }
+  }
+  return false;
+}
+
+/**
  * Export selected items as batched PDFs via server (35 items per PDF)
  * Server generates PDFs with Puppeteer and returns as ZIP
  */
@@ -209,66 +253,287 @@ async function exportBatchedPDFs() {
     };
   });
 
+  // Show loading indicator and status panel
+  const exportBtn = document.getElementById("print-btn");
+  const originalText = exportBtn.textContent;
+  exportBtn.textContent = "Waking up server...";
+  exportBtn.disabled = true;
+
+  // Show status panel
+  const statusPanel = document.getElementById("status-panel");
+  const statusLog = document.getElementById("status-log");
+  statusPanel.classList.remove("hidden");
+  statusLog.innerHTML = "";
+
+  // Function to add log entry (defined outside try block so catch can use it)
+  const addLogEntry = (message, type = "info") => {
+    const entry = document.createElement("div");
+    entry.className = `log-entry log-${type}`;
+    const timestamp = new Date().toLocaleTimeString();
+    entry.innerHTML = `<span class="log-time">${timestamp}</span> <span class="log-message">${message}</span>`;
+    statusLog.appendChild(entry);
+    statusLog.scrollTop = statusLog.scrollHeight; // Auto-scroll to bottom
+  };
+
   try {
-    // Show loading indicator
-    const exportBtn = document.getElementById("print-btn");
-    const originalText = exportBtn.textContent;
-    exportBtn.textContent = "Waking up server...";
-    exportBtn.disabled = true;
+    // Helper function to validate jobId format
+    const validateJobId = (id) => {
+      if (!id || typeof id !== "string") return false;
+      const jobIdRegex = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
+      return jobIdRegex.test(id) && id.length <= 100;
+    };
 
-    // Call server API with retry for cold start
-    let response;
-    let attempts = 0;
-    const maxAttempts = 3;
+    // Generate job ID (safe format: alphanumeric with hyphens)
+    const generateJobId = () => {
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substr(2, 9);
+      return `job-${timestamp}-${random}`;
+    };
 
-    while (attempts < maxAttempts) {
-      try {
-        exportBtn.textContent =
-          attempts === 0 ? "Waking up server..." : "Generating PDFs...";
+    const jobId = generateJobId();
 
-        response = await fetch(`${config.API_URL}/generate-pdfs`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ items }),
-        });
+    // Validate generated jobId
+    if (!validateJobId(jobId)) {
+      console.error("Generated invalid jobId:", jobId);
+      alert("Error: Failed to generate valid job ID. Please try again.");
+      exportBtn.textContent = originalText;
+      exportBtn.disabled = false;
+      return;
+    }
 
-        if (response.ok) {
-          break; // Success!
+    // SSE connection state management
+    let eventSource = null;
+    let sseConnected = false;
+    let sseConnectionTimeout = null;
+    let sseRetryCount = 0;
+    const maxSSERetries = 3;
+    const sseConnectionTimeoutMs = 15000; // 15 seconds to establish connection (increased for cold starts)
+
+    // Function to establish SSE connection with retry logic
+    const connectSSE = () => {
+      return new Promise((resolve, reject) => {
+        if (eventSource) {
+          eventSource.close();
         }
 
-        if (response.status === 500 && attempts < maxAttempts - 1) {
-          console.log(`Attempt ${attempts + 1} failed, retrying...`);
-          await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5s before retry
-          attempts++;
-          continue;
-        }
+        addLogEntry("Connecting to server for status updates...", "info");
+        console.log(
+          `[SSE] Attempting to connect to: ${config.API_URL}/status/${jobId}`
+        );
 
-        throw new Error(`Server error: ${response.status}`);
-      } catch (fetchError) {
-        if (
-          fetchError.message.includes("Failed to fetch") &&
-          attempts < maxAttempts - 1
-        ) {
-          console.log(
-            `Server starting up, waiting... (attempt ${
-              attempts + 1
-            }/${maxAttempts})`
+        eventSource = new EventSource(`${config.API_URL}/status/${jobId}`);
+
+        // Connection timeout
+        sseConnectionTimeout = setTimeout(() => {
+          if (!sseConnected) {
+            console.warn(
+              `[SSE] Connection timeout after ${sseConnectionTimeoutMs}ms`
+            );
+            eventSource.close();
+            eventSource = null;
+            reject(new Error("SSE connection timeout"));
+          }
+        }, sseConnectionTimeoutMs);
+
+        // Handle successful connection
+        eventSource.onopen = () => {
+          console.log("[SSE] Connection opened");
+          // Note: We'll wait for the "connected" message to confirm
+        };
+
+        // Handle messages
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+
+            // Handle initial connection confirmation
+            if (data.type === "connected") {
+              if (!sseConnected) {
+                sseConnected = true;
+                if (sseConnectionTimeout) {
+                  clearTimeout(sseConnectionTimeout);
+                  sseConnectionTimeout = null;
+                }
+                addLogEntry("✅ Connected to server", "success");
+                console.log("[SSE] Connection confirmed");
+                resolve(eventSource);
+              }
+              return;
+            }
+
+            // Handle other message types
+            switch (data.type) {
+              case "start":
+                addLogEntry(
+                  `Starting: ${data.message} (${data.totalItems} items)`,
+                  "info"
+                );
+                exportBtn.textContent = "Generating PDFs...";
+                break;
+              case "progress":
+                addLogEntry(data.message, "info");
+                break;
+              case "batch-start":
+                addLogEntry(
+                  `📦 Batch ${data.batchNumber}/${data.totalBatches}: ${data.itemsInBatch} items`,
+                  "info"
+                );
+                break;
+              case "image-gen":
+                addLogEntry(`🎨 ${data.message}`, "info");
+                break;
+              case "image-progress":
+                addLogEntry(
+                  `🎨 Generating image ${data.current}/${data.total}...`,
+                  "info"
+                );
+                break;
+              case "image-complete":
+                addLogEntry(`✅ ${data.message}`, "success");
+                break;
+              case "batch-complete":
+                addLogEntry(
+                  `✅ Batch ${data.batchNumber}/${data.totalBatches} complete!`,
+                  "success"
+                );
+                break;
+              case "complete":
+                addLogEntry(`🎉 ${data.message}`, "success");
+                addLogEntry("Downloading ZIP file...", "info");
+                if (eventSource) {
+                  eventSource.close();
+                  eventSource = null;
+                }
+                break;
+              case "warning":
+                addLogEntry(`⚠️ ${data.message}`, "warning");
+                break;
+              case "error":
+                addLogEntry(`❌ ${data.message}`, "error");
+                if (eventSource) {
+                  eventSource.close();
+                  eventSource = null;
+                }
+                break;
+              case "test":
+                // Ignore test messages
+                break;
+            }
+          } catch (e) {
+            console.error("[SSE] Error parsing SSE data:", e);
+            addLogEntry("⚠️ Error parsing server message", "warning");
+          }
+        };
+
+        // Handle errors
+        eventSource.onerror = (error) => {
+          console.error("[SSE] Connection error:", error);
+          console.error(
+            "[SSE] EventSource readyState:",
+            eventSource?.readyState
           );
-          await new Promise((resolve) => setTimeout(resolve, 10000)); // Wait 10s for cold start
-          attempts++;
-          continue;
-        }
-        throw fetchError;
+
+          // EventSource.readyState: 0 = CONNECTING, 1 = OPEN, 2 = CLOSED
+          if (eventSource?.readyState === EventSource.CLOSED) {
+            if (!sseConnected) {
+              // Connection failed before establishing
+              if (sseConnectionTimeout) {
+                clearTimeout(sseConnectionTimeout);
+                sseConnectionTimeout = null;
+              }
+
+              if (sseRetryCount < maxSSERetries) {
+                sseRetryCount++;
+                addLogEntry(
+                  `⚠️ Connection failed, retrying... (${sseRetryCount}/${maxSSERetries})`,
+                  "warning"
+                );
+                console.log(
+                  `[SSE] Retrying connection (attempt ${sseRetryCount})`
+                );
+                setTimeout(() => {
+                  connectSSE().then(resolve).catch(reject);
+                }, 1000 * sseRetryCount); // Exponential backoff
+              } else {
+                addLogEntry(
+                  "⚠️ Could not establish status connection. Continuing without live updates...",
+                  "warning"
+                );
+                console.warn(
+                  "[SSE] Max retries reached, continuing without SSE"
+                );
+                eventSource = null;
+                resolve(null); // Resolve with null to continue anyway
+              }
+            } else {
+              // Connection was established but then closed
+              addLogEntry("⚠️ Status connection lost", "warning");
+              if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+              }
+            }
+          } else if (eventSource?.readyState === EventSource.CONNECTING) {
+            // Still connecting, wait a bit more
+            console.log("[SSE] Still connecting...");
+          }
+        };
+      });
+    };
+
+    // Step 1: Wake up the server first with health check
+    exportBtn.textContent = "Waking up server...";
+    const serverReady = await wakeUpServer(config.API_URL, addLogEntry);
+
+    if (!serverReady) {
+      addLogEntry("Server did not respond. Please try again later.", "error");
+      exportBtn.textContent = originalText;
+      exportBtn.disabled = false;
+      return;
+    }
+
+    // Step 2: Now connect SSE (server is awake!)
+    exportBtn.textContent = "Connecting...";
+    let sseConnectionEstablished = false;
+    try {
+      await connectSSE();
+      sseConnectionEstablished = true;
+    } catch (error) {
+      console.warn("[SSE] Failed to establish connection:", error);
+      addLogEntry(
+        "⚠️ Status updates unavailable. PDF generation will continue...",
+        "warning"
+      );
+      // Continue anyway - PDF generation will work without SSE
+    }
+
+    // Step 3: Call server API to generate PDFs (server is already awake)
+    exportBtn.textContent = "Generating PDFs...";
+    let response;
+
+    try {
+      addLogEntry("Starting PDF generation...", "info");
+
+      response = await fetch(`${config.API_URL}/generate-pdfs`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ items, jobId }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
       }
+    } catch (fetchError) {
+      console.error("[PDF] Error generating PDFs:", fetchError);
+      addLogEntry(`Error: ${fetchError.message}`, "error");
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+      throw fetchError;
     }
-
-    if (!response.ok) {
-      throw new Error(`Server error: ${response.status}`);
-    }
-
-    exportBtn.textContent = "Downloading ZIP...";
 
     // Download ZIP
     const blob = await response.blob();
@@ -281,14 +546,25 @@ async function exportBatchedPDFs() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
+    addLogEntry("✅ Download complete!", "success");
     exportBtn.textContent = originalText;
     exportBtn.disabled = false;
 
-    alert(
-      `Export complete! Downloaded ZIP with ${totalBatches} PDF file(s). 🎉`
-    );
+    // Clean up SSE connection if still open
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
+    }
   } catch (error) {
     console.error("Export error:", error);
+    addLogEntry(`❌ Export failed: ${error.message}`, "error");
+
+    // Clean up SSE connection on error
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
+    }
+
     alert(
       `Export failed: ${error.message}\n\nMake sure the server is running:\n1. Open terminal\n2. cd server\n3. npm start`
     );
@@ -376,6 +652,20 @@ document.addEventListener("DOMContentLoaded", () => {
   counterSpan.id = "selected-count";
   counterSpan.textContent = "Selected: 0";
   countsContainer.appendChild(counterSpan);
+
+  // Create status panel inside control panel
+  const statusPanel = document.createElement("div");
+  statusPanel.id = "status-panel";
+  statusPanel.className = "status-panel hidden";
+  const statusHeader = document.createElement("div");
+  statusHeader.className = "status-header";
+  statusHeader.innerHTML = "<h3>Generation Status</h3>";
+  statusPanel.appendChild(statusHeader);
+  const statusLog = document.createElement("div");
+  statusLog.id = "status-log";
+  statusLog.className = "status-log";
+  statusPanel.appendChild(statusLog);
+  controlPanel.appendChild(statusPanel);
 
   // Move print button to control panel (will be at bottom due to margin-top: auto)
   const printBtn = document.getElementById("print-btn");

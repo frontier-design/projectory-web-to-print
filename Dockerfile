@@ -59,6 +59,9 @@ COPY server/server.js ./server.js
 COPY server/copy-assets.js ./copy-assets.js
 COPY server/.puppeteerrc.cjs ./.puppeteerrc.cjs
 
+# Copy modular server code
+COPY server/src ./src
+
 # Expose port (Render uses PORT env var)
 EXPOSE 3000
 
