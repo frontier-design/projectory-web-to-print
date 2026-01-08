@@ -55,6 +55,10 @@ async function generateAIImage(prompt, timeout = 60000, promptOptions = {}) {
           ],
         },
       ],
+      generationConfig: {
+        // Request portrait aspect ratio (2:3) to match container dimensions
+        responseModalities: ["IMAGE", "TEXT"],
+      },
     };
 
     // Make API request

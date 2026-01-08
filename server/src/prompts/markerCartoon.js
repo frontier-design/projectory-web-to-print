@@ -21,6 +21,7 @@ function buildMarkerCartoonPrompt(subject, options = {}) {
     view = "front view",
     shading = "none",
     mood = "playful and friendly",
+    aspectRatio = "2:3 portrait",
   } = options;
 
   return `
@@ -33,12 +34,12 @@ Shading: ${
       ? "no shading at all"
       : "minimal simple hatching in small areas only"
   }, no gradients.
-Composition: ${framing}, ${view}, subject fully visible, no cropped limbs, readable silhouette.
+Composition: ${framing}, ${view}, subject fully visible, no cropped limbs, readable silhouette, ${aspectRatio} orientation.
 Mood: ${mood}.
 Background: pure white background, no texture, no environment, no shadows, no extra objects unless specified.
-Output: monochrome only (black ink on white), high contrast.
+Output: monochrome only (black ink on white), high contrast, ${aspectRatio} aspect ratio, portrait format image.
 
-Negative prompts: color, grayscale, photorealism, 3D render, pencil texture, watercolor, noisy lines, blur, cluttered background, text, watermark.
+Negative prompts: color, grayscale, photorealism, 3D render, pencil texture, watercolor, noisy lines, blur, cluttered background, text, watermark, landscape orientation, square format.
   `.trim();
 }
 
@@ -50,6 +51,7 @@ const defaultOptions = {
   view: "front view",
   shading: "none",
   mood: "playful and friendly",
+  aspectRatio: "2:3 portrait",
 };
 
 module.exports = {
