@@ -55,10 +55,6 @@ async function generateAIImage(prompt, timeout = 60000, promptOptions = {}) {
           ],
         },
       ],
-      generationConfig: {
-        // Request portrait aspect ratio (2:3) to match container dimensions
-        responseModalities: ["IMAGE", "TEXT"],
-      },
     };
 
     // Make API request
@@ -110,24 +106,31 @@ async function generateAIImage(prompt, timeout = 60000, promptOptions = {}) {
 
           try {
             const response = JSON.parse(data);
-            // Gemini API response format: response.candidates[0].content.parts[0].inlineData
-            if (
-              response.candidates &&
-              response.candidates[0] &&
-              response.candidates[0].content &&
-              response.candidates[0].content.parts &&
-              response.candidates[0].content.parts[0] &&
-              response.candidates[0].content.parts[0].inlineData
-            ) {
-              const inlineData =
-                response.candidates[0].content.parts[0].inlineData;
-              const mimeType = inlineData.mimeType || "image/png";
-              const base64Data = inlineData.data;
+            // Gemini API response format: response.candidates[0].content.parts[N].inlineData
+            // Image data might be in any part, so search through all parts
+            let imageData = null;
+            
+            if (response.candidates && response.candidates[0]?.content?.parts) {
+              for (const part of response.candidates[0].content.parts) {
+                if (part.inlineData) {
+                  imageData = part.inlineData;
+                  break;
+                }
+              }
+            }
+            
+            if (imageData) {
+              const mimeType = imageData.mimeType || "image/png";
+              const base64Data = imageData.data;
               resolve(`data:${mimeType};base64,${base64Data}`);
             } else {
               console.error(
-                "Unexpected API response format:",
-                JSON.stringify(response).substring(0, 500)
+                "No image data found in response. Parts:",
+                response.candidates?.[0]?.content?.parts?.map(p => Object.keys(p)) || "No parts"
+              );
+              console.error(
+                "Full response:",
+                JSON.stringify(response).substring(0, 800)
               );
               reject(new Error("No image data in API response"));
             }

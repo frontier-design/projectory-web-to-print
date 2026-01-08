@@ -1,6 +1,6 @@
 /**
  * AI Prompt Builder for Marker Cartoon Style
- * 
+ *
  * This module contains prompt templates for generating
  * marker-style cartoon illustrations using AI.
  */
