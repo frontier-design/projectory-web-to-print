@@ -265,8 +265,11 @@ router.post("/", async (req, res) => {
         "progress",
         `Creating PDF for batch ${batchIndex + 1}...`
       );
+      // Use explicit dimensions to match CSS @page size: 16.5in x 5in
+      // Convert inches to points (1 inch = 72 points)
       const pdfBuffer = await page.pdf({
-        format: "A4",
+        width: "16.5in",
+        height: "5in",
         printBackground: true,
         preferCSSPageSize: true,
         margin: { top: 0, bottom: 0, left: 0, right: 0 },
