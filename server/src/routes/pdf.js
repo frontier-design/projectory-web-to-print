@@ -84,7 +84,8 @@ router.post("/", async (req, res) => {
     const BATCH_TIMEOUT = 180000; // 3 minutes per batch
 
     // Generate PDFs without global timeout - process continues even if batches fail
-    (async () => {
+    // AWAIT is critical - ensures route handler waits for PDF generation to complete
+    await (async () => {
       logMemoryUsage("Start of PDF generation");
       emitProgress(jobId, "start", "Starting PDF generation...", {
         totalItems: items.length,
@@ -486,29 +487,34 @@ router.post("/", async (req, res) => {
       unregisterJob(jobId);
 
       // Send ZIP with partial results (even if some batches failed)
-      res.setHeader("Content-Type", "application/zip");
-      res.setHeader(
-        "Content-Disposition",
-        "attachment; filename=comboconvo-pdfs.zip"
-      );
-      // Add batch summary to headers for client reference
-      res.setHeader("X-Batch-Success-Count", successCount.toString());
-      res.setHeader("X-Batch-Failed-Count", failedCount.toString());
-      res.setHeader("X-Batch-Total-Count", totalBatches.toString());
-      if (failedBatches.length > 0) {
+      // Check if response hasn't been sent yet (connection might be closed)
+      if (!res.headersSent) {
+        res.setHeader("Content-Type", "application/zip");
         res.setHeader(
-          "X-Failed-Batches",
-          JSON.stringify(
-            failedBatches.map((f) => ({
-              batch: f.batchIndex,
-              error: f.error,
-              rows: f.rows,
-              rowCount: f.rowCount,
-            }))
-          )
+          "Content-Disposition",
+          "attachment; filename=comboconvo-pdfs.zip"
         );
+        // Add batch summary to headers for client reference
+        res.setHeader("X-Batch-Success-Count", successCount.toString());
+        res.setHeader("X-Batch-Failed-Count", failedCount.toString());
+        res.setHeader("X-Batch-Total-Count", totalBatches.toString());
+        if (failedBatches.length > 0) {
+          res.setHeader(
+            "X-Failed-Batches",
+            JSON.stringify(
+              failedBatches.map((f) => ({
+                batch: f.batchIndex,
+                error: f.error,
+                rows: f.rows,
+                rowCount: f.rowCount,
+              }))
+            )
+          );
+        }
+        res.send(zipBuffer);
+      } else {
+        console.warn("Response headers already sent, cannot send ZIP file");
       }
-      res.send(zipBuffer);
 
       // Log summary
       console.log(
