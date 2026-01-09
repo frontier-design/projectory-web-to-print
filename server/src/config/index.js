@@ -29,9 +29,12 @@ const config = {
   fontsPath: path.join(__dirname, "../../assets/fonts"),
 
   // PDF generation settings
-  batchSize: 35,
+  batchSize: 12, // Reduced from 35 to lower memory usage per batch
   pdfTimeout: 60000, // 60 seconds
   requestTimeout: 300000, // 5 minutes for PDF generation (includes AI image generation)
+  
+  // Image processing settings
+  imageChunkSize: 3, // Process images in chunks of 3 to reduce peak memory
 
   // SSE settings
   heartbeatInterval: 30000, // 30 seconds

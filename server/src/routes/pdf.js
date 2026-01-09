@@ -16,6 +16,31 @@ const { generateHTML } = require("../services/html");
 const { emitProgress, unregisterJob } = require("../status/progress");
 
 /**
+ * Get current memory usage in MB
+ * @returns {Object} Memory usage stats
+ */
+function getMemoryUsage() {
+  const usage = process.memoryUsage();
+  return {
+    rss: Math.round(usage.rss / 1024 / 1024), // Resident Set Size
+    heapTotal: Math.round(usage.heapTotal / 1024 / 1024),
+    heapUsed: Math.round(usage.heapUsed / 1024 / 1024),
+    external: Math.round(usage.external / 1024 / 1024),
+  };
+}
+
+/**
+ * Log memory usage
+ * @param {string} label - Label for the log entry
+ */
+function logMemoryUsage(label) {
+  const mem = getMemoryUsage();
+  console.log(
+    `[Memory] ${label}: RSS=${mem.rss}MB, Heap=${mem.heapUsed}/${mem.heapTotal}MB, External=${mem.external}MB`
+  );
+}
+
+/**
  * OPTIONS /generate-pdfs
  * Handle CORS preflight requests
  */
@@ -71,6 +96,7 @@ router.post("/", async (req, res) => {
     // Wrap PDF generation in Promise.race with timeout
     await Promise.race([
       (async () => {
+        logMemoryUsage("Start of PDF generation");
         emitProgress(jobId, "start", "Starting PDF generation...", {
           totalItems: items.length,
         });
@@ -153,6 +179,7 @@ router.post("/", async (req, res) => {
         );
 
         // Launch Puppeteer
+        logMemoryUsage("Before browser launch");
         emitProgress(jobId, "progress", "Launching browser...");
         console.log("Launching Puppeteer...");
         browser = await puppeteer.launch({
@@ -165,10 +192,17 @@ router.post("/", async (req, res) => {
             "--no-first-run",
             "--no-zygote",
             "--disable-gpu",
+            "--single-process", // Reduces memory usage (single process instead of multiple)
+            "--disable-extensions", // Disable extensions to save memory
+            "--disable-software-rasterizer", // Disable software rasterizer
+            "--disable-background-timer-throttling", // Reduce background processes
+            "--disable-backgrounding-occluded-windows",
+            "--disable-renderer-backgrounding",
           ],
         });
         emitProgress(jobId, "progress", "Browser launched successfully");
         console.log("Browser launched successfully");
+        logMemoryUsage("After browser launch");
 
         const zip = new JSZip();
 
@@ -224,38 +258,49 @@ router.post("/", async (req, res) => {
             { current: 0, total: batchItems.length }
           );
 
-          const itemsWithImages = await Promise.all(
-            batchItems.map(async (item, index) => {
-              try {
-                const aiImage = await generateAIImage(item.freeText || "");
-                emitProgress(
-                  jobId,
-                  "image-progress",
-                  `Generated image ${index + 1}/${batchItems.length}`,
-                  { current: index + 1, total: batchItems.length }
-                );
-                return {
-                  ...item,
-                  aiImage: aiImage,
-                };
-              } catch (error) {
-                console.error(
-                  `Error generating image for item: ${error.message}`
-                );
-                emitProgress(
-                  jobId,
-                  "warning",
-                  `Image generation failed for item ${index + 1}: ${
-                    error.message
-                  }`
-                );
-                return {
-                  ...item,
-                  aiImage: null,
-                };
-              }
-            })
-          );
+          // Process images in chunks to reduce peak memory usage
+          const CHUNK_SIZE = config.imageChunkSize || 3;
+          const itemsWithImages = [];
+          let totalGenerated = 0;
+
+          for (let i = 0; i < batchItems.length; i += CHUNK_SIZE) {
+            const chunk = batchItems.slice(i, i + CHUNK_SIZE);
+            const chunkResults = await Promise.all(
+              chunk.map(async (item, chunkIndex) => {
+                const globalIndex = i + chunkIndex;
+                try {
+                  const aiImage = await generateAIImage(item.freeText || "");
+                  totalGenerated++;
+                  emitProgress(
+                    jobId,
+                    "image-progress",
+                    `Generated image ${totalGenerated}/${batchItems.length}`,
+                    { current: totalGenerated, total: batchItems.length }
+                  );
+                  return {
+                    ...item,
+                    aiImage: aiImage,
+                  };
+                } catch (error) {
+                  console.error(
+                    `Error generating image for item: ${error.message}`
+                  );
+                  emitProgress(
+                    jobId,
+                    "warning",
+                    `Image generation failed for item ${globalIndex + 1}: ${
+                      error.message
+                    }`
+                  );
+                  return {
+                    ...item,
+                    aiImage: null,
+                  };
+                }
+              })
+            );
+            itemsWithImages.push(...chunkResults);
+          }
 
           const imagesGenerated = itemsWithImages.filter(
             (item) => item.aiImage !== null
@@ -345,15 +390,24 @@ router.post("/", async (req, res) => {
             { batchNumber: batchIndex + 1, totalBatches }
           );
 
+          // Clear image data from memory to allow garbage collection
+          itemsWithImages.forEach((item) => {
+            item.aiImage = null;
+          });
+          logMemoryUsage(`After batch ${batchIndex + 1} PDF generation`);
+
           await page.close();
         }
 
         await browser.close();
+        logMemoryUsage("After browser close");
 
         // Generate ZIP
         emitProgress(jobId, "progress", "Creating ZIP file...");
         console.log("Creating ZIP file...");
+        logMemoryUsage("Before ZIP generation");
         const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
+        logMemoryUsage("After ZIP generation");
 
         emitProgress(jobId, "complete", "PDFs generated successfully!", {
           totalBatches,
