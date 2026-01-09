@@ -259,6 +259,18 @@ router.post("/", async (req, res) => {
       // Additional wait for rendering
       await new Promise((resolve) => setTimeout(resolve, 500));
 
+      // Ensure body height exactly matches content to prevent extra pages
+      await page.evaluate(() => {
+        const printContainer = document.getElementById("print-container");
+        if (printContainer) {
+          const containerHeight = printContainer.scrollHeight;
+          document.body.style.height = `${containerHeight}px`;
+          document.body.style.overflow = "hidden";
+          document.documentElement.style.height = `${containerHeight}px`;
+          document.documentElement.style.overflow = "hidden";
+        }
+      });
+
       // Generate PDF
       emitProgress(
         jobId,
@@ -266,13 +278,14 @@ router.post("/", async (req, res) => {
         `Creating PDF for batch ${batchIndex + 1}...`
       );
       // Use explicit dimensions to match CSS @page size: 16.5in x 5in
-      // Convert inches to points (1 inch = 72 points)
+      // Remove preferCSSPageSize to avoid conflicts with explicit dimensions
       const pdfBuffer = await page.pdf({
         width: "16.5in",
         height: "5in",
         printBackground: true,
-        preferCSSPageSize: true,
+        preferCSSPageSize: false,
         margin: { top: 0, bottom: 0, left: 0, right: 0 },
+        displayHeaderFooter: false,
       });
 
       // Add to ZIP

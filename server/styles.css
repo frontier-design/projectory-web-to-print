@@ -420,20 +420,33 @@
     height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
+    overflow: hidden !important;
   }
 
   #print-container .print-surface {
     page-break-inside: avoid !important;
-    page-break-after: auto !important;
+    page-break-before: auto !important;
+    page-break-after: always !important;
+  }
+
+  #print-container .print-surface:first-child {
+    page-break-before: avoid !important;
   }
 
   #print-container .print-surface:last-child {
     page-break-after: avoid !important;
+    page-break-inside: avoid !important;
   }
 
   html, body {
     height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Prevent any content after print-container from creating pages */
+  body > *:not(#print-container) {
+    display: none !important;
   }
 }
