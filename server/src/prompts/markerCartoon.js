@@ -36,11 +36,11 @@ function buildMarkerCartoonPrompt(subject, options = {}) {
 ${subject.trim()}, shown clearly and centered.
 
 STYLE LOCK (must follow):
-- Drawn with a black Sharpie / felt-tip marker on pure white paper.
+- Hand drawn with a black Sharpie / felt-tip marker on pure white paper.
 - Two-tone palette only: pure black ink (#000000) and pure white background (#FFFFFF).
 - No grayscale, no gray pixels, no gradients, no soft shadows, no textures.
 - High-contrast, hard-thresholded ink look (screen-printed / comic ink consistency).
-- Clean readable silhouette, simple shapes, cartoon illustration.
+- Hand drawn clean readable silhouette, simple shapes, cartoon illustration.
 
 LINEWORK:
 - Bold smooth outer contour lines.

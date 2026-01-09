@@ -31,6 +31,7 @@ const config = {
   // PDF generation settings
   batchSize: 35,
   pdfTimeout: 60000, // 60 seconds
+  requestTimeout: 300000, // 5 minutes for PDF generation (includes AI image generation)
 
   // SSE settings
   heartbeatInterval: 30000, // 30 seconds
