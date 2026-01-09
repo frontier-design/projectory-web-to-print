@@ -559,10 +559,15 @@ async function exportBatchedPDFs() {
     console.error("Export error:", error);
     addLogEntry(`❌ Export failed: ${error.message}`, "error");
 
-    // Clean up SSE connection on error
-    if (eventSource) {
-      eventSource.close();
-      eventSource = null;
+    // Clean up SSE connection on error (check if defined)
+    try {
+      if (typeof eventSource !== "undefined" && eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+    } catch (e) {
+      // Ignore cleanup errors
+      console.warn("Could not clean up SSE connection:", e);
     }
 
     alert(

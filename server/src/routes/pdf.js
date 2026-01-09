@@ -16,10 +16,27 @@ const { generateHTML } = require("../services/html");
 const { emitProgress, unregisterJob } = require("../status/progress");
 
 /**
+ * OPTIONS /generate-pdfs
+ * Handle CORS preflight requests
+ */
+router.options("/", (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Max-Age", "86400"); // 24 hours
+  res.sendStatus(204);
+});
+
+/**
  * POST /generate-pdfs
  * Generate PDFs for the provided items
  */
 router.post("/", async (req, res) => {
+  // Set CORS headers explicitly
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
   const jobId =
     req.body.jobId ||
     `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -28,6 +45,10 @@ router.post("/", async (req, res) => {
     const { items } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
+      // Ensure CORS headers are set even on early return
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type");
       return res.status(400).json({ error: "No items provided" });
     }
 
@@ -336,6 +357,11 @@ router.post("/", async (req, res) => {
     // Clean up job progress
     unregisterJob(jobId);
 
+    // Ensure CORS headers are set even on error
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    
     res.status(500).json({ error: error.message, stack: error.stack, jobId });
   }
 });
