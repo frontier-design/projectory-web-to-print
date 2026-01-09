@@ -80,138 +80,135 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "No items provided" });
     }
 
-    // Create timeout promise for the entire request
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(
-          new Error(
-            `Request timeout: PDF generation exceeded ${
-              config.requestTimeout / 1000
-            } seconds`
-          )
+    // Per-batch timeout (3 minutes per batch)
+    const BATCH_TIMEOUT = 180000; // 3 minutes per batch
+
+    // Generate PDFs without global timeout - process continues even if batches fail
+    (async () => {
+      logMemoryUsage("Start of PDF generation");
+      emitProgress(jobId, "start", "Starting PDF generation...", {
+        totalItems: items.length,
+      });
+      console.log(
+        `Generating PDFs for ${items.length} items... (Job ID: ${jobId})`
+      );
+
+      // Read CSS and SVG files
+      emitProgress(jobId, "progress", "Reading CSS and assets...");
+      console.log("Reading CSS file...");
+      const cssPath = path.join(config.serverDir, "styles.css");
+      console.log("CSS path:", cssPath);
+
+      // Check if file exists
+      try {
+        await fs.access(cssPath);
+        console.log("CSS file exists");
+      } catch (err) {
+        console.error("CSS file NOT found at:", cssPath);
+        emitProgress(jobId, "error", `CSS file not found at ${cssPath}`);
+        throw new Error(
+          `CSS file not found at ${cssPath}. Make sure to run npm install which runs copy-assets.js`
         );
-      }, config.requestTimeout);
-    });
+      }
 
-    // Wrap PDF generation in Promise.race with timeout
-    await Promise.race([
-      (async () => {
-        logMemoryUsage("Start of PDF generation");
-        emitProgress(jobId, "start", "Starting PDF generation...", {
-          totalItems: items.length,
-        });
-        console.log(
-          `Generating PDFs for ${items.length} items... (Job ID: ${jobId})`
+      const cssContent = await fs.readFile(cssPath, "utf-8");
+      console.log("CSS file read successfully");
+
+      emitProgress(jobId, "progress", "Reading SVG files...");
+      console.log("Reading SVG files...");
+      const orangeSvgPath = path.join(config.assetsPath, "orange.svg");
+      const blueSvgPath = path.join(config.assetsPath, "blue.svg");
+      const orangeSvg = await fs.readFile(orangeSvgPath, "base64");
+      const blueSvg = await fs.readFile(blueSvgPath, "base64");
+      console.log("SVG files read successfully");
+
+      // Read fonts
+      emitProgress(jobId, "progress", "Loading fonts...");
+      console.log("Reading fonts...");
+      const founderGroteskRegular = await fs.readFile(
+        path.join(config.fontsPath, "FoundersGrotesk-Regular.otf"),
+        "base64"
+      );
+      const founderGroteskMedium = await fs.readFile(
+        path.join(config.fontsPath, "FoundersGrotesk-Medium.otf"),
+        "base64"
+      );
+      const permanentMarker = await fs.readFile(
+        path.join(config.fontsPath, "PermanentMarker-Regular.ttf"),
+        "base64"
+      );
+      console.log("Fonts read successfully");
+
+      // Embed fonts in CSS
+      const cssWithFonts = cssContent
+        .replace(
+          /url\('\.\/assets\/fonts\/FoundersGrotesk-Regular\.otf'\)\s*format\('opentype'\)/g,
+          `url(data:font/opentype;base64,${founderGroteskRegular}) format('opentype')`
+        )
+        .replace(
+          /url\('\.\/assets\/fonts\/FoundersGrotesk-RegularItalic\.otf'\)\s*format\('opentype'\)/g,
+          `url(data:font/opentype;base64,${founderGroteskRegular}) format('opentype')`
+        )
+        .replace(
+          /url\('\.\/assets\/fonts\/FoundersGrotesk-Medium\.otf'\)\s*format\('opentype'\)/g,
+          `url(data:font/opentype;base64,${founderGroteskMedium}) format('opentype')`
+        )
+        .replace(
+          /url\('\.\/assets\/fonts\/PermanentMarker-Regular\.ttf'\)\s*format\('truetype'\)/g,
+          `url(data:font/truetype;base64,${permanentMarker}) format('truetype')`
         );
 
-        // Read CSS and SVG files
-        emitProgress(jobId, "progress", "Reading CSS and assets...");
-        console.log("Reading CSS file...");
-        const cssPath = path.join(config.serverDir, "styles.css");
-        console.log("CSS path:", cssPath);
+      const BATCH_SIZE = config.batchSize;
+      const totalBatches = Math.ceil(items.length / BATCH_SIZE);
 
-        // Check if file exists
+      emitProgress(
+        jobId,
+        "progress",
+        `Prepared ${totalBatches} batch(es) for ${items.length} items`
+      );
+
+      // Launch Puppeteer
+      logMemoryUsage("Before browser launch");
+      emitProgress(jobId, "progress", "Launching browser...");
+      console.log("Launching Puppeteer...");
+      browser = await puppeteer.launch({
+        headless: "new",
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--no-first-run",
+          "--no-zygote",
+          "--disable-gpu",
+          "--single-process", // Reduces memory usage (single process instead of multiple)
+          "--disable-extensions", // Disable extensions to save memory
+          "--disable-software-rasterizer", // Disable software rasterizer
+          "--disable-background-timer-throttling", // Reduce background processes
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+        ],
+      });
+      emitProgress(jobId, "progress", "Browser launched successfully");
+      console.log("Browser launched successfully");
+      logMemoryUsage("After browser launch");
+
+      const zip = new JSZip();
+      const batchResults = [];
+      const failedBatches = [];
+
+      // Generate PDFs for each batch - each batch is independent
+      for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+        const start = batchIndex * BATCH_SIZE;
+        const end = Math.min(start + BATCH_SIZE, items.length);
+        const batchItems = items.slice(start, end);
+        // Calculate 1-based row numbers for this batch
+        const itemIndices = Array.from(
+          { length: end - start },
+          (_, i) => start + i + 1
+        );
+
         try {
-          await fs.access(cssPath);
-          console.log("CSS file exists");
-        } catch (err) {
-          console.error("CSS file NOT found at:", cssPath);
-          emitProgress(jobId, "error", `CSS file not found at ${cssPath}`);
-          throw new Error(
-            `CSS file not found at ${cssPath}. Make sure to run npm install which runs copy-assets.js`
-          );
-        }
-
-        const cssContent = await fs.readFile(cssPath, "utf-8");
-        console.log("CSS file read successfully");
-
-        emitProgress(jobId, "progress", "Reading SVG files...");
-        console.log("Reading SVG files...");
-        const orangeSvgPath = path.join(config.assetsPath, "orange.svg");
-        const blueSvgPath = path.join(config.assetsPath, "blue.svg");
-        const orangeSvg = await fs.readFile(orangeSvgPath, "base64");
-        const blueSvg = await fs.readFile(blueSvgPath, "base64");
-        console.log("SVG files read successfully");
-
-        // Read fonts
-        emitProgress(jobId, "progress", "Loading fonts...");
-        console.log("Reading fonts...");
-        const founderGroteskRegular = await fs.readFile(
-          path.join(config.fontsPath, "FoundersGrotesk-Regular.otf"),
-          "base64"
-        );
-        const founderGroteskMedium = await fs.readFile(
-          path.join(config.fontsPath, "FoundersGrotesk-Medium.otf"),
-          "base64"
-        );
-        const permanentMarker = await fs.readFile(
-          path.join(config.fontsPath, "PermanentMarker-Regular.ttf"),
-          "base64"
-        );
-        console.log("Fonts read successfully");
-
-        // Embed fonts in CSS
-        const cssWithFonts = cssContent
-          .replace(
-            /url\('\.\/assets\/fonts\/FoundersGrotesk-Regular\.otf'\)\s*format\('opentype'\)/g,
-            `url(data:font/opentype;base64,${founderGroteskRegular}) format('opentype')`
-          )
-          .replace(
-            /url\('\.\/assets\/fonts\/FoundersGrotesk-RegularItalic\.otf'\)\s*format\('opentype'\)/g,
-            `url(data:font/opentype;base64,${founderGroteskRegular}) format('opentype')`
-          )
-          .replace(
-            /url\('\.\/assets\/fonts\/FoundersGrotesk-Medium\.otf'\)\s*format\('opentype'\)/g,
-            `url(data:font/opentype;base64,${founderGroteskMedium}) format('opentype')`
-          )
-          .replace(
-            /url\('\.\/assets\/fonts\/PermanentMarker-Regular\.ttf'\)\s*format\('truetype'\)/g,
-            `url(data:font/truetype;base64,${permanentMarker}) format('truetype')`
-          );
-
-        const BATCH_SIZE = config.batchSize;
-        const totalBatches = Math.ceil(items.length / BATCH_SIZE);
-
-        emitProgress(
-          jobId,
-          "progress",
-          `Prepared ${totalBatches} batch(es) for ${items.length} items`
-        );
-
-        // Launch Puppeteer
-        logMemoryUsage("Before browser launch");
-        emitProgress(jobId, "progress", "Launching browser...");
-        console.log("Launching Puppeteer...");
-        browser = await puppeteer.launch({
-          headless: "new",
-          args: [
-            "--no-sandbox",
-            "--disable-setuid-sandbox",
-            "--disable-dev-shm-usage",
-            "--disable-accelerated-2d-canvas",
-            "--no-first-run",
-            "--no-zygote",
-            "--disable-gpu",
-            "--single-process", // Reduces memory usage (single process instead of multiple)
-            "--disable-extensions", // Disable extensions to save memory
-            "--disable-software-rasterizer", // Disable software rasterizer
-            "--disable-background-timer-throttling", // Reduce background processes
-            "--disable-backgrounding-occluded-windows",
-            "--disable-renderer-backgrounding",
-          ],
-        });
-        emitProgress(jobId, "progress", "Browser launched successfully");
-        console.log("Browser launched successfully");
-        logMemoryUsage("After browser launch");
-
-        const zip = new JSZip();
-
-        // Generate PDFs for each batch
-        for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
-          const start = batchIndex * BATCH_SIZE;
-          const end = Math.min(start + BATCH_SIZE, items.length);
-          const batchItems = items.slice(start, end);
-
           emitProgress(
             jobId,
             "batch-start",
@@ -381,8 +378,13 @@ router.post("/", async (req, res) => {
             displayHeaderFooter: false,
           });
 
-          // Add to ZIP
+          // Add to ZIP and track success
           zip.file(`comboconvo-${batchIndex + 1}.pdf`, pdfBuffer);
+          batchResults.push({
+            batchIndex: batchIndex + 1,
+            success: true,
+            pdfBuffer,
+          });
           emitProgress(
             jobId,
             "batch-complete",
@@ -397,38 +399,125 @@ router.post("/", async (req, res) => {
           logMemoryUsage(`After batch ${batchIndex + 1} PDF generation`);
 
           await page.close();
+        } catch (batchError) {
+          // Batch failed - log error with row information and continue
+          const errorMsg = `Batch ${batchIndex + 1} failed: ${
+            batchError.message
+          }. Rows in this batch: ${itemIndices.join(", ")}`;
+          console.error(errorMsg);
+          console.error("Batch error stack:", batchError.stack);
+
+          failedBatches.push({
+            batchIndex: batchIndex + 1,
+            error: batchError.message,
+            rows: itemIndices,
+            rowCount: itemIndices.length,
+          });
+
+          emitProgress(jobId, "warning", errorMsg);
+
+          // Clean up page if it was created
+          try {
+            if (typeof page !== "undefined" && page) {
+              await page.close();
+            }
+          } catch (closeError) {
+            console.error(
+              `Error closing page for failed batch ${batchIndex + 1}:`,
+              closeError
+            );
+          }
+
+          // Continue to next batch - don't abort the entire process
+          console.log(
+            `Continuing with remaining batches after batch ${
+              batchIndex + 1
+            } failure...`
+          );
         }
+      }
 
-        await browser.close();
-        logMemoryUsage("After browser close");
+      await browser.close();
+      logMemoryUsage("After browser close");
 
-        // Generate ZIP
-        emitProgress(jobId, "progress", "Creating ZIP file...");
-        console.log("Creating ZIP file...");
-        logMemoryUsage("Before ZIP generation");
-        const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
-        logMemoryUsage("After ZIP generation");
+      // Generate ZIP with successful batches
+      emitProgress(jobId, "progress", "Creating ZIP file...");
+      console.log("Creating ZIP file...");
+      logMemoryUsage("Before ZIP generation");
 
-        emitProgress(jobId, "complete", "PDFs generated successfully!", {
-          totalBatches,
-          totalItems: items.length,
-        });
+      const successCount = batchResults.filter((r) => r.success).length;
+      const failedCount = failedBatches.length;
 
-        // Clean up job progress
-        unregisterJob(jobId);
+      // Build final ZIP from successful batches
+      const finalZip = new JSZip();
+      for (const result of batchResults) {
+        if (result.success) {
+          finalZip.file(
+            `comboconvo-${result.batchIndex}.pdf`,
+            result.pdfBuffer
+          );
+        }
+      }
 
-        // Send ZIP
-        res.setHeader("Content-Type", "application/zip");
-        res.setHeader(
-          "Content-Disposition",
-          "attachment; filename=comboconvo-pdfs.zip"
+      const zipBuffer = await finalZip.generateAsync({ type: "nodebuffer" });
+      logMemoryUsage("After ZIP generation");
+
+      // Send success message with batch summary
+      if (successCount > 0) {
+        emitProgress(
+          jobId,
+          "complete",
+          `PDFs generated: ${successCount} successful, ${failedCount} failed`,
+          {
+            totalBatches,
+            successCount,
+            failedCount,
+            totalItems: items.length,
+          }
         );
-        res.send(zipBuffer);
+      } else {
+        emitProgress(jobId, "error", `All batches failed. No PDFs generated.`, {
+          totalBatches,
+          failedCount,
+        });
+      }
 
-        console.log("PDFs generated and sent!");
-      })(),
-      timeoutPromise,
-    ]);
+      // Clean up job progress
+      unregisterJob(jobId);
+
+      // Send ZIP with partial results (even if some batches failed)
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=comboconvo-pdfs.zip"
+      );
+      // Add batch summary to headers for client reference
+      res.setHeader("X-Batch-Success-Count", successCount.toString());
+      res.setHeader("X-Batch-Failed-Count", failedCount.toString());
+      res.setHeader("X-Batch-Total-Count", totalBatches.toString());
+      if (failedBatches.length > 0) {
+        res.setHeader(
+          "X-Failed-Batches",
+          JSON.stringify(
+            failedBatches.map((f) => ({
+              batch: f.batchIndex,
+              error: f.error,
+              rows: f.rows,
+              rowCount: f.rowCount,
+            }))
+          )
+        );
+      }
+      res.send(zipBuffer);
+
+      // Log summary
+      console.log(
+        `PDF generation complete: ${successCount} successful, ${failedCount} failed`
+      );
+      if (failedBatches.length > 0) {
+        console.log("Failed batches:", failedBatches);
+      }
+    })();
   } catch (error) {
     console.error("Error generating PDFs:");
     console.error("Error message:", error.message);

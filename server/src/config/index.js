@@ -31,7 +31,7 @@ const config = {
   // PDF generation settings
   batchSize: 12, // Reduced from 35 to lower memory usage per batch
   pdfTimeout: 60000, // 60 seconds
-  requestTimeout: 300000, // 5 minutes for PDF generation (includes AI image generation)
+  requestTimeout: 1200000, // 20 minutes - increased to allow processing many batches (per-batch timeout is 3 minutes)
   
   // Image processing settings
   imageChunkSize: 3, // Process images in chunks of 3 to reduce peak memory
