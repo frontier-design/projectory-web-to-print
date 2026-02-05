@@ -44,7 +44,7 @@ function generateHTML(items, cssContent, orangeSvg, blueSvg) {
       </div>
       <div class="answer">
         <div class="answer-box">
-          <div class="answer-byline">${orangeName} and ${blueName} said:</div>
+          <div class="answer-byline"><span class="byline-name">${orangeName}</span> and <span class="byline-name">${blueName}</span> said:</div>
           <div class="answer-prompt">${freeText}</div>
         </div>
       </div>
@@ -112,7 +112,6 @@ function generateHTML(items, cssContent, orangeSvg, blueSvg) {
       width: 100% !important;
       max-width: 100% !important;
       height: 100% !important;
-      border: 3px dashed blue !important; /* DEBUG */
     }
     .answer-byline,
     #print-container .answer-byline {
@@ -121,12 +120,15 @@ function generateHTML(items, cssContent, orangeSvg, blueSvg) {
       font-size: 14px !important;
       line-height: 1.4 !important;
       color: #000 !important;
-      font-family: 'FounderGrotesk_Medium', Arial, sans-serif !important;
+      font-family: 'FounderGrotesk_Regular', Arial, sans-serif !important;
       margin-bottom: 8px !important;
       flex-shrink: 0 !important;
       min-height: 20px !important;
       text-align: left !important;
-      border: 3px dashed red !important; /* DEBUG */
+    }
+    .byline-name,
+    #print-container .byline-name {
+      font-family: 'FounderGrotesk_Medium', Arial, sans-serif !important;
     }
     .answer-prompt,
     #print-container .answer-prompt {
@@ -136,7 +138,6 @@ function generateHTML(items, cssContent, orangeSvg, blueSvg) {
       font-size: 3.5rem !important;
       line-height: 3.6rem !important;
       font-family: 'PermanentMarker', sans-serif !important;
-      border: 3px dashed green !important; /* DEBUG */
     }
   </style>
 </head>
