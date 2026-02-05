@@ -96,17 +96,21 @@ function generateHTML(items, cssContent, orangeSvg, blueSvg) {
     }
 
     /* Center the answer block in its column; keep text left-aligned */
-    .answer {
+    .answer,
+    #print-container .answer {
       display: flex !important;
       justify-content: center !important;
       align-items: center !important;
     }
-    .answer-box {
+    .answer-box,
+    #print-container .answer-box {
       display: flex !important;
       flex-direction: column !important;
       align-items: flex-start !important;
       text-align: left !important;
       width: 100% !important;
+      max-width: 100% !important;
+      height: auto !important;
     }
     .answer-byline {
       display: block !important;
