@@ -44,8 +44,8 @@ function generateHTML(items, cssContent, orangeSvg, blueSvg) {
       </div>
       <div class="answer">
         <div class="answer-box">
-          <div class="answer-byline" style="display: block !important; visibility: visible !important; font-size: 14px !important; line-height: 1.4 !important; color: #000 !important; font-family: 'FounderGrotesk_Medium', Arial, sans-serif !important; margin-bottom: 8px !important; flex-shrink: 0 !important; min-height: 20px !important; padding: 4px 0 !important; text-align: center !important;">${orangeName} and ${blueName} said:</div>
-          <div class="answer-prompt" style="font-size: 3.5rem; line-height: 3.6rem; font-family: 'PermanentMarker', sans-serif; flex: 1; text-align: center !important;">${freeText}</div>
+          <div class="answer-byline">${orangeName} and ${blueName} said:</div>
+          <div class="answer-prompt">${freeText}</div>
         </div>
       </div>
       ${aiImageHtml}
@@ -106,12 +106,12 @@ function generateHTML(items, cssContent, orangeSvg, blueSvg) {
     #print-container .answer-box {
       display: flex !important;
       flex-direction: column !important;
-      align-items: center !important;
-      text-align: center !important;
+      justify-content: center !important;
+      align-items: flex-start !important;
+      text-align: left !important;
       width: 100% !important;
       max-width: 100% !important;
-      height: fit-content !important;
-      max-height: 100% !important;
+      height: 100% !important;
     }
     .answer-byline {
       display: block !important;
@@ -123,11 +123,14 @@ function generateHTML(items, cssContent, orangeSvg, blueSvg) {
       margin-bottom: 8px !important;
       flex-shrink: 0 !important;
       min-height: 20px !important;
-      text-align: center !important;
+      text-align: left !important;
     }
     .answer-prompt {
-      flex: 1 !important;
-      text-align: center !important;
+      flex-shrink: 0 !important;
+      text-align: left !important;
+      font-size: 3.5rem !important;
+      line-height: 3.6rem !important;
+      font-family: 'PermanentMarker', sans-serif !important;
     }
   </style>
 </head>
