@@ -95,7 +95,7 @@ function generateHTML(items, cssContent, orangeSvg, blueSvg) {
       padding: 0;
     }
 
-    /* Center the answer block in its column; keep text left-aligned */
+    /* Center the answer block in its column; height fits content, max-height constrains */
     .answer,
     #print-container .answer {
       display: flex !important;
@@ -110,7 +110,8 @@ function generateHTML(items, cssContent, orangeSvg, blueSvg) {
       text-align: left !important;
       width: 100% !important;
       max-width: 100% !important;
-      height: auto !important;
+      height: fit-content !important;
+      max-height: 100% !important;
     }
     .answer-byline {
       display: block !important;
