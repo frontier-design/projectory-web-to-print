@@ -117,7 +117,7 @@ function generateHTML(items, cssContent, orangeSvg, blueSvg) {
     #print-container .answer-byline {
       display: block !important;
       visibility: visible !important;
-      font-size: 18px !important;
+      font-size: 36px !important;
       line-height: 1.4 !important;
       color: #000 !important;
       font-family: 'FounderGrotesk_Regular', Arial, sans-serif !important;
