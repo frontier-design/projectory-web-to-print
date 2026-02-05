@@ -114,10 +114,11 @@ function generateHTML(items, cssContent, orangeSvg, blueSvg) {
       height: 100% !important;
     }
     .answer-byline,
-    #print-container .answer-byline {
+    #print-container .answer-byline,
+    #print-container .answer-box .answer-byline {
       display: block !important;
       visibility: visible !important;
-      font-size: 36px !important;
+      font-size: 18px !important;
       line-height: 1.4 !important;
       color: #000 !important;
       font-family: 'FounderGrotesk_Regular', Arial, sans-serif !important;

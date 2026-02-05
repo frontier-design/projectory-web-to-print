@@ -403,9 +403,9 @@
   }
 
   #print-container .answer-box .answer-byline {
-    font-size: 0.75rem !important;
+    font-size: 18px !important;
     font-family: 'FounderGrotesk_Regular', sans-serif !important;
-    margin-bottom: 6px !important;
+    margin-bottom: 8px !important;
     flex-shrink: 0 !important;
   }
 
