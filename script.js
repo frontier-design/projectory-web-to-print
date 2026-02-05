@@ -75,7 +75,7 @@ function populateAnswersList(answerArray) {
       answerBox.innerHTML = "";
       const bylineEl = document.createElement("div");
       bylineEl.className = "answer-byline";
-      bylineEl.textContent = `[${orangeName}] and [${blueName}] said:`;
+      bylineEl.textContent = `${orangeName} and ${blueName} said:`;
       const promptEl = document.createElement("div");
       promptEl.className = "answer-prompt";
       promptEl.textContent = item.freeText;
@@ -167,7 +167,7 @@ function buildPrintContainer(itemsToInclude = null) {
     answerBox.className = "answer-box";
     const bylineEl = document.createElement("div");
     bylineEl.className = "answer-byline";
-    bylineEl.textContent = `[${orangeName}] and [${blueName}] said:`;
+    bylineEl.textContent = `${orangeName} and ${blueName} said:`;
     const promptEl = document.createElement("div");
     promptEl.className = "answer-prompt";
     promptEl.textContent = freeText;

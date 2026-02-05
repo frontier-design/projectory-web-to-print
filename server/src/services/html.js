@@ -44,8 +44,8 @@ function generateHTML(items, cssContent, orangeSvg, blueSvg) {
       </div>
       <div class="answer">
         <div class="answer-box">
-          <div class="answer-byline" style="display: block !important; visibility: visible !important; font-size: 14px !important; line-height: 1.4 !important; color: #000 !important; font-family: 'FounderGrotesk_Regular', Arial, sans-serif !important; margin-bottom: 8px !important; flex-shrink: 0 !important; min-height: 20px !important; padding: 4px 0 !important; background: rgba(255,240,200,0.4) !important;">[${orangeName}] and [${blueName}] said:</div>
-          <div class="answer-prompt" style="font-size: 3.5rem; line-height: 3.6rem; font-family: 'PermanentMarker', sans-serif; flex: 1;">${freeText}</div>
+          <div class="answer-byline" style="display: block !important; visibility: visible !important; font-size: 14px !important; line-height: 1.4 !important; color: #000 !important; font-family: 'FounderGrotesk_Medium', Arial, sans-serif !important; margin-bottom: 8px !important; flex-shrink: 0 !important; min-height: 20px !important; padding: 4px 0 !important; text-align: left !important;">${orangeName} and ${blueName} said:</div>
+          <div class="answer-prompt" style="font-size: 3.5rem; line-height: 3.6rem; font-family: 'PermanentMarker', sans-serif; flex: 1; text-align: left !important;">${freeText}</div>
         </div>
       </div>
       ${aiImageHtml}
@@ -95,11 +95,18 @@ function generateHTML(items, cssContent, orangeSvg, blueSvg) {
       padding: 0;
     }
 
-    /* Force answer byline visible in PDF (survives copy-assets overwriting server CSS) */
+    /* Center the answer block in its column; keep text left-aligned */
+    .answer {
+      display: flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+    }
     .answer-box {
       display: flex !important;
       flex-direction: column !important;
       align-items: flex-start !important;
+      text-align: left !important;
+      width: 100% !important;
     }
     .answer-byline {
       display: block !important;
@@ -107,13 +114,15 @@ function generateHTML(items, cssContent, orangeSvg, blueSvg) {
       font-size: 14px !important;
       line-height: 1.4 !important;
       color: #000 !important;
-      font-family: 'FounderGrotesk_Regular', Arial, sans-serif !important;
+      font-family: 'FounderGrotesk_Medium', Arial, sans-serif !important;
       margin-bottom: 8px !important;
       flex-shrink: 0 !important;
       min-height: 20px !important;
+      text-align: left !important;
     }
     .answer-prompt {
       flex: 1 !important;
+      text-align: left !important;
     }
   </style>
 </head>
