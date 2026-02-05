@@ -112,8 +112,10 @@ function generateHTML(items, cssContent, orangeSvg, blueSvg) {
       width: 100% !important;
       max-width: 100% !important;
       height: 100% !important;
+      border: 3px dashed blue !important; /* DEBUG */
     }
-    .answer-byline {
+    .answer-byline,
+    #print-container .answer-byline {
       display: block !important;
       visibility: visible !important;
       font-size: 14px !important;
@@ -124,13 +126,17 @@ function generateHTML(items, cssContent, orangeSvg, blueSvg) {
       flex-shrink: 0 !important;
       min-height: 20px !important;
       text-align: left !important;
+      border: 3px dashed red !important; /* DEBUG */
     }
-    .answer-prompt {
-      flex-shrink: 0 !important;
+    .answer-prompt,
+    #print-container .answer-prompt {
+      flex: 0 0 auto !important;
+      height: auto !important;
       text-align: left !important;
       font-size: 3.5rem !important;
       line-height: 3.6rem !important;
       font-family: 'PermanentMarker', sans-serif !important;
+      border: 3px dashed green !important; /* DEBUG */
     }
   </style>
 </head>
