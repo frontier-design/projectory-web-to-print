@@ -107,12 +107,28 @@
   width: 100%;
   height: 100%;
   padding: 10px;
-  font-size: 1.5rem;
-  font-family: 'PermanentMarker', sans-serif;
   overflow-y: auto;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   border: 1px dashed blue;
+}
+
+.answer-byline {
+  font-size: 0.95rem;
+  line-height: 1.3;
+  color: #222;
+  font-family: 'FounderGrotesk_Regular', sans-serif;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+  border: 1px dashed red !important;
+}
+
+.answer-prompt {
+  font-size: 1.5rem;
+  font-family: 'PermanentMarker', sans-serif;
+  flex: 1;
+  overflow-y: auto;
 }
 
 #orange-card {
@@ -170,6 +186,7 @@
   height: 100vh;
   overflow-y: auto;
   background-color: white;
+
 }
 
 #control-panel {
@@ -211,7 +228,7 @@
 
 #answers-list li {
   display: grid;
-  grid-template-columns: 60px 60px minmax(150px, 1fr) minmax(150px, 1fr) minmax(200px, 2fr);
+  grid-template-columns: 60px 60px minmax(100px, 1fr) minmax(100px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(180px, 2fr);
   row-gap: 0;
   align-items: stretch;
   cursor: pointer;
@@ -231,19 +248,34 @@
 }
 
 /* Column background colors */
+/* Orange User column - same background as header */
 #answers-list li > *:nth-child(3) {
+  background-color: rgba(255, 68, 0, 0.10);
+  padding: 10px 15px;
+}
+
+/* Blue User column - same background as header */
+#answers-list li > *:nth-child(4) {
+  background-color: rgba(100, 148, 237, 0.10);
+  padding: 10px 15px;
+}
+
+/* What is a column */
+#answers-list li > *:nth-child(5) {
   color: orangered;
   background-color: rgba(255, 68, 0, 0.20);
   padding: 10px 25px;
 }
 
-#answers-list li > *:nth-child(4) {
+/* That Could column */
+#answers-list li > *:nth-child(6) {
   color: rgb(64, 131, 255);
   background-color: rgba(100, 148, 237, 0.20);
   padding: 10px 25px;
 }
 
-#answers-list li > *:nth-child(5) {
+/* Answer column */
+#answers-list li > *:nth-child(7) {
   padding: 10px 25px;
 }
 
@@ -256,17 +288,32 @@
   background-color: white;
 }
 
+/* Orange User header */
 #answers-list .list-header > *:nth-child(3) {
+  color: orangered;
+  background-color: rgba(255, 68, 0, 0.10);
+}
+
+/* Blue User header */
+#answers-list .list-header > *:nth-child(4) {
+  color: rgb(64, 131, 255);
+  background-color: rgba(100, 148, 237, 0.10);
+}
+
+/* What is a header */
+#answers-list .list-header > *:nth-child(5) {
   color: white;
   background-color: orangered;
 }
 
-#answers-list .list-header > *:nth-child(4) {
+/* That Could header */
+#answers-list .list-header > *:nth-child(6) {
   color: white;
   background-color: rgb(64, 131, 255);
 }
 
-#answers-list .list-header > *:nth-child(5) {
+/* Answer header */
+#answers-list .list-header > *:nth-child(7) {
   color: white;
   background-color: black;
 }
@@ -414,6 +461,12 @@
     border: none !important;
   }
 
+  /* Exception: allow .answer-byline border so it stays visible in print preview */
+  .answer-byline,
+  #print-container .answer-byline {
+    border: 1px dashed red !important;
+  }
+
   body {
     margin: 0;
   }
@@ -472,6 +525,19 @@
     padding: 0 !important;
     border: none !important;
     background: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  #print-container .answer-box .answer-byline {
+    font-size: 0.75rem !important;
+    font-family: 'FounderGrotesk_Regular', sans-serif !important;
+    margin-bottom: 6px !important;
+    flex-shrink: 0 !important;
+  }
+
+  #print-container .answer-box .answer-prompt {
     font-size: 3.5rem !important;
     line-height: 3.6rem !important;
     font-family: 'PermanentMarker', sans-serif !important;

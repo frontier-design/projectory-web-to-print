@@ -24,6 +24,8 @@ function populateAnswersList(answerArray) {
   header.innerHTML = `
     <span class="header-cell"></span>
     <span class="header-cell"></span>
+    <span class="header-cell">Orange User</span>
+    <span class="header-cell">Blue User</span>
     <span class="header-cell">What is a</span>
     <span class="header-cell">That Could</span>
     <span class="header-cell">Answer</span>
@@ -42,6 +44,8 @@ function populateAnswersList(answerArray) {
     li.innerHTML = `
       <span class="row-number">${rowNumber}</span>
       <input type="checkbox" class="select-checkbox" />
+      <span class="orange-user value-text">${item.orangeCard || ''}</span>
+      <span class="blue-user value-text">${item.blueCard || ''}</span>
       <span class="whatIsA value-text">${item.whatIsA}</span>
       <span class="thatCould value-text">${item.thatCould}</span>
       <span class="answer-text">${item.freeText}</span>
@@ -66,7 +70,17 @@ function populateAnswersList(answerArray) {
       document.getElementById("orange-overlay").textContent = item.whatIsA;
       document.getElementById("blue-overlay").textContent = item.thatCould;
       const answerBox = document.getElementById("answer");
-      answerBox.innerText = item.freeText;
+      const orangeName = item.orangeCard || "Orange User";
+      const blueName = item.blueCard || "Blue User";
+      answerBox.innerHTML = "";
+      const bylineEl = document.createElement("div");
+      bylineEl.className = "answer-byline";
+      bylineEl.textContent = `[${orangeName}] and [${blueName}] said:`;
+      const promptEl = document.createElement("div");
+      promptEl.className = "answer-prompt";
+      promptEl.textContent = item.freeText;
+      answerBox.appendChild(bylineEl);
+      answerBox.appendChild(promptEl);
 
       checkbox.checked = !checkbox.checked;
       li.classList.toggle("selected", checkbox.checked);
@@ -105,6 +119,8 @@ function buildPrintContainer(itemsToInclude = null) {
     const whatIsAEl = li.querySelector(".whatIsA");
     const thatCouldEl = li.querySelector(".thatCould");
     const freeTextEl = li.querySelector(".answer-text");
+    const orangeUserEl = li.querySelector(".orange-user");
+    const blueUserEl = li.querySelector(".blue-user");
 
     if (!whatIsAEl || !thatCouldEl || !freeTextEl) {
       console.error("Missing element in selected item:", li);
@@ -114,6 +130,8 @@ function buildPrintContainer(itemsToInclude = null) {
     const whatIsA = whatIsAEl.textContent.trim();
     const thatCould = thatCouldEl.textContent.trim();
     const freeText = freeTextEl.textContent.trim();
+    const orangeName = orangeUserEl ? orangeUserEl.textContent.trim() : "Orange User";
+    const blueName = blueUserEl ? blueUserEl.textContent.trim() : "Blue User";
 
     const ps = document.createElement("div");
     ps.className = "print-surface";
@@ -147,7 +165,14 @@ function buildPrintContainer(itemsToInclude = null) {
     answerDiv.className = "answer";
     const answerBox = document.createElement("div");
     answerBox.className = "answer-box";
-    answerBox.textContent = freeText;
+    const bylineEl = document.createElement("div");
+    bylineEl.className = "answer-byline";
+    bylineEl.textContent = `[${orangeName}] and [${blueName}] said:`;
+    const promptEl = document.createElement("div");
+    promptEl.className = "answer-prompt";
+    promptEl.textContent = freeText;
+    answerBox.appendChild(bylineEl);
+    answerBox.appendChild(promptEl);
     answerDiv.appendChild(answerBox);
 
     // AI image container (for preview - shows where image will appear)
@@ -245,11 +270,15 @@ async function exportBatchedPDFs() {
     const whatIsAEl = li.querySelector(".whatIsA");
     const thatCouldEl = li.querySelector(".thatCould");
     const freeTextEl = li.querySelector(".answer-text");
+    const orangeUserEl = li.querySelector(".orange-user");
+    const blueUserEl = li.querySelector(".blue-user");
 
     return {
       whatIsA: whatIsAEl ? whatIsAEl.textContent.trim() : "",
       thatCould: thatCouldEl ? thatCouldEl.textContent.trim() : "",
       freeText: freeTextEl ? freeTextEl.textContent.trim() : "",
+      orangeCard: orangeUserEl ? orangeUserEl.textContent.trim() : "",
+      blueCard: blueUserEl ? blueUserEl.textContent.trim() : "",
     };
   });
 
@@ -608,6 +637,19 @@ document.addEventListener("DOMContentLoaded", () => {
   answersWrapper.id = "answers-wrapper";
   answersList.parentNode.insertBefore(answersWrapper, answersList);
   answersWrapper.appendChild(answersList);
+
+  // Ensure answer box always has byline + prompt structure so borders/layout are visible on print surface
+  const answerBox = document.getElementById("answer");
+  if (answerBox && !answerBox.querySelector(".answer-byline")) {
+    const bylineEl = document.createElement("div");
+    bylineEl.className = "answer-byline";
+    bylineEl.textContent = "";
+    const promptEl = document.createElement("div");
+    promptEl.className = "answer-prompt";
+    promptEl.textContent = "";
+    answerBox.appendChild(bylineEl);
+    answerBox.appendChild(promptEl);
+  }
 
   ["orange", "blue"].forEach((color) => {
     const card = document.getElementById(`${color}-card`);
